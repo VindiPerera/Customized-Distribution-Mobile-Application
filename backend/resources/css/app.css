@@ -1,0 +1,56 @@
+@font-face {
+    font-family: 'Fraunces';
+    src: url('/fonts/Fraunces-Variable.woff2') format('woff2-variations');
+    font-weight: 300 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Inter';
+    src: url('/fonts/Inter-Variable.woff2') format('woff2-variations');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --accent: #0f6e5c;
+    --accent-hover: #0b5849;
+    --accent-soft: #e4f2ee;
+    --accent-soft-hover: #d3e9e2;
+
+    --ink: #1c2321;
+    --ink-soft: #4b5450;
+    --paper: #ffffff;
+    --surface: #ffffff;
+    --line: #e4e2dc;
+    --line-soft: #f3f3f0;
+
+    --good: #2e7d4f;
+    --good-soft: #e7f4eb;
+    --warn: #b8792a;
+    --warn-soft: #fbf0e0;
+    --critical: #c23b3b;
+    --critical-soft: #fbe9e9;
+}
+
+body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.font-display {
+    font-family: 'Fraunces', ui-serif, Georgia, serif;
+    font-optical-sizing: auto;
+    text-wrap: balance;
+}
+
+.tabular {
+    font-variant-numeric: tabular-nums;
+}

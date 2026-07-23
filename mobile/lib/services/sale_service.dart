@@ -1,0 +1,30 @@
+import '../models/sale.dart';
+import 'api_client.dart';
+
+class SaleService {
+  final ApiClient _api;
+
+  SaleService(this._api);
+
+  Future<Map<String, dynamic>> createSale({
+    int? customerId,
+    required String paymentType,
+    required List<SaleItemInput> items,
+    double discount = 0,
+    List<SalePaymentInput>? payments,
+  }) async {
+    return await _api.post('/sales', {
+      'customer_id': customerId,
+      'payment_type': paymentType,
+      'discount': discount,
+      'items': items.map((e) => e.toJson()).toList(),
+      if (payments != null) 'payments': payments.map((e) => e.toJson()).toList(),
+    });
+  }
+
+  Future<List<Sale>> list() async {
+    final data = await _api.get('/sales');
+    final items = data['data'] as List;
+    return items.map((e) => Sale.fromJson(e)).toList();
+  }
+}

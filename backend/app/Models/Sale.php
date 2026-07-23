@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Sale extends Model
+{
+    protected $fillable = [
+        'invoice_number',
+        'customer_id',
+        'user_id',
+        'payment_type',
+        'subtotal',
+        'discount',
+        'total_amount',
+        'paid_amount',
+        'status',
+        'sale_date',
+        'notes',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'subtotal' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'total_amount' => 'decimal:2',
+            'paid_amount' => 'decimal:2',
+            'sale_date' => 'datetime',
+        ];
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(SaleItem::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SalePayment::class);
+    }
+
+    public function isCredit(): bool
+    {
+        return $this->payment_type === 'credit';
+    }
+
+    public function paymentTypeLabel(): string
+    {
+        return match ($this->payment_type) {
+            'bank_transfer' => 'Bank Transfer',
+            default => ucfirst($this->payment_type),
+        };
+    }
+
+    public function paymentTypeBadgeClasses(): string
+    {
+        return match ($this->payment_type) {
+            'credit' => 'bg-warn-soft text-warn',
+            'split' => 'bg-accent-soft text-accent',
+            default => 'bg-good-soft text-good',
+        };
+    }
+}

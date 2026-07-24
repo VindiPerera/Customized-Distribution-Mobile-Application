@@ -23,6 +23,8 @@ class ShopSettingController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'tax_id' => ['nullable', 'string', 'max:100'],
             'footer_note' => ['nullable', 'string', 'max:255'],
+            'paper_size' => ['required', 'in:mm58,mm80'],
+            'receipt_language' => ['required', 'in:en,si'],
         ]);
 
         ShopSetting::current()->update($data);

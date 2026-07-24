@@ -4,6 +4,8 @@ class ShopSettings {
   final String phone;
   final String taxId;
   final String footerNote;
+  final String paperSize;
+  final String receiptLanguage;
 
   const ShopSettings({
     required this.name,
@@ -11,6 +13,8 @@ class ShopSettings {
     required this.phone,
     required this.taxId,
     required this.footerNote,
+    required this.paperSize,
+    required this.receiptLanguage,
   });
 
   static const fallback = ShopSettings(
@@ -19,6 +23,8 @@ class ShopSettings {
     phone: '',
     taxId: '',
     footerNote: 'Thank you! Come again.',
+    paperSize: 'mm58',
+    receiptLanguage: 'en',
   );
 
   factory ShopSettings.fromJson(Map<String, dynamic> json) {
@@ -28,6 +34,8 @@ class ShopSettings {
       phone: json['phone'] ?? '',
       taxId: json['tax_id'] ?? '',
       footerNote: json['footer_note'] ?? '',
+      paperSize: (json['paper_size'] as String?)?.isNotEmpty == true ? json['paper_size'] : fallback.paperSize,
+      receiptLanguage: (json['receipt_language'] as String?)?.isNotEmpty == true ? json['receipt_language'] : fallback.receiptLanguage,
     );
   }
 }

@@ -46,6 +46,24 @@
                     <x-input-error :messages="$errors->get('footer_note')" class="mt-1" />
                 </div>
 
+                <div>
+                    <x-input-label for="paper_size" value="Receipt Paper Size" />
+                    <select id="paper_size" name="paper_size" class="mt-1 block w-full border-line rounded-md shadow-sm focus:border-accent focus:ring-accent">
+                        <option value="mm58" @selected(old('paper_size', $settings->paper_size) === 'mm58')>58mm</option>
+                        <option value="mm80" @selected(old('paper_size', $settings->paper_size) === 'mm80')>80mm</option>
+                    </select>
+                    <x-input-error :messages="$errors->get('paper_size')" class="mt-1" />
+                </div>
+
+                <div>
+                    <x-input-label for="receipt_language" value="Receipt Language" />
+                    <select id="receipt_language" name="receipt_language" class="mt-1 block w-full border-line rounded-md shadow-sm focus:border-accent focus:ring-accent">
+                        <option value="en" @selected(old('receipt_language', $settings->receipt_language) === 'en')>English</option>
+                        <option value="si" @selected(old('receipt_language', $settings->receipt_language) === 'si')>Sinhala</option>
+                    </select>
+                    <x-input-error :messages="$errors->get('receipt_language')" class="mt-1" />
+                </div>
+
                 <div class="flex justify-end gap-2">
                     <x-primary-button>Save</x-primary-button>
                 </div>

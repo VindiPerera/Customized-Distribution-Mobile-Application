@@ -66,7 +66,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
         return;
       }
 
-      final printed = await _printerService.printReceipt(_boundaryKey);
+      final printed = await _printerService.printReceipt(_boundaryKey, paperSize: _shop!.paperSize);
       if (mounted) {
         if (printed) {
           ScaffoldMessenger.of(context).showSnackBar(

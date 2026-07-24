@@ -12,6 +12,8 @@ class ShopSetting extends Model
         'phone',
         'tax_id',
         'footer_note',
+        'paper_size',
+        'receipt_language',
     ];
 
     /**

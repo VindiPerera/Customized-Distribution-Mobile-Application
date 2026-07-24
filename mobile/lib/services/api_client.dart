@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,10 +13,7 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  // Web/desktop can reach the host directly at localhost. The Android
-  // emulator's host loopback is 10.0.2.2 instead. Change baseUrl for a
-  // real device or production deployment (e.g. https://yourdomain.com/api).
-  static final String baseUrl = kIsWeb ? 'http://127.0.0.1:8000/api' : 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'https://damsas-creations.jaan.lk/api';
 
   static const _tokenKey = 'auth_token';
 

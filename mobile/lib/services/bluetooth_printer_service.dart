@@ -32,7 +32,7 @@ class BluetoothPrinterService {
   /// Captures [boundaryKey]'s widget as a bitmap and prints it as an ESC/POS
   /// raster image, so Sinhala Unicode text renders correctly regardless of
   /// the printer's built-in font support.
-  Future<bool> printReceipt(GlobalKey boundaryKey) async {
+  Future<bool> printReceipt(GlobalKey boundaryKey, {String paperSize = 'mm58'}) async {
     final boundary = boundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
     final uiImage = await boundary.toImage(pixelRatio: 2.0);
     final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
@@ -40,7 +40,7 @@ class BluetoothPrinterService {
 
     final decoded = img.decodePng(pngBytes)!;
     final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm58, profile);
+    final generator = Generator(paperSize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58, profile);
 
     final bytes = <int>[];
     bytes.addAll(generator.reset());

@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/receipt_data.dart';
 import '../models/shop_settings.dart';
+import '../services/api_client.dart';
+
+/// Contact details printed on every receipt below the shop phone number.
+/// Static because they're fixed business contact info, not a per-shop
+/// setting configurable via the admin panel.
+const String _receiptWhatsapp = '072 665 0786';
+const String _receiptEmail = 'info.damsascreations@gmail.com';
 
 /// Labels for the receipt's fixed chrome text (everything that isn't shop
 /// or sale data), keyed by [ShopSettings.receiptLanguage].

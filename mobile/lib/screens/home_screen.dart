@@ -1,14 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/shop_settings.dart';
 import '../providers/auth_provider.dart';
+import '../services/shop_settings_service.dart';
 import '../theme.dart';
 import '../widgets/shop_logo.dart';
 import 'customers_screen.dart';
 import 'new_sale_screen.dart';
 import 'sales_history_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  ShopSettings? _shop;
+
+  @override
+  void initState() {
+    super.initState();
+    ShopSettingsService(context.read<AuthProvider>().api).load().then(
+          (s) => setState(() => _shop = s),
+          onError: (_) => setState(() => _shop = ShopSettings.fallback),
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,11 +35,11 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           children: [
-            ShopLogo(size: 32, borderRadius: 8),
-            SizedBox(width: 10),
-            Text('Dashboard'),
+            const ShopLogo(size: 32, borderRadius: 8),
+            const SizedBox(width: 10),
+            Text(_shop?.name ?? 'Dashboard'),
           ],
         ),
         actions: [

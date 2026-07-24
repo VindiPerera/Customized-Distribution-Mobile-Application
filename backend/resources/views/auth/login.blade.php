@@ -8,13 +8,13 @@
         @csrf
 
         <div>
-            <x-input-label for="email" value="Email" />
+            <x-input-label for="email" value="Email" required />
             <x-text-input id="email" class="block w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" placeholder="you@company.com" />
             <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
         </div>
 
         <div>
-            <x-input-label for="password" value="Password" />
+            <x-input-label for="password" value="Password" required />
             <x-text-input id="password" class="block w-full" type="password" name="password" required autocomplete="current-password" placeholder="••••••••" />
             <x-input-error :messages="$errors->get('password')" class="mt-1.5" />
         </div>

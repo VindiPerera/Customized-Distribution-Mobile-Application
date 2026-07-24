@@ -8,6 +8,9 @@ use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\ReportDashboardController;
 use App\Http\Controllers\Web\SaleController;
+use App\Http\Controllers\Web\ShopSettingController;
+use App\Http\Controllers\Web\StockAdjustmentController;
+use App\Http\Controllers\Web\StockTransactionController;
 use App\Http\Controllers\Web\SupplierController;
 use App\Http\Controllers\Web\UserController;
 use Illuminate\Support\Facades\Route;
@@ -29,7 +32,9 @@ Route::middleware('auth')->group(function () {
     Route::post('customers/{customer}/payments', [CustomerController::class, 'storePayment'])->name('customers.payments.store');
 
     Route::resource('products', ProductController::class)->except(['show']);
-    Route::post('products/{product}/adjust-stock', [ProductController::class, 'adjustStock'])->name('products.adjust-stock');
+
+    Route::resource('stock-adjustments', StockAdjustmentController::class)->only(['index', 'create', 'store']);
+    Route::get('stock-transactions', [StockTransactionController::class, 'index'])->name('stock-transactions.index');
 
     Route::resource('categories', CategoryController::class)->except(['show']);
     Route::resource('suppliers', SupplierController::class)->except(['show']);
@@ -47,6 +52,9 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('admin')->group(function () {
         Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'destroy']);
+
+        Route::get('shop-settings', [ShopSettingController::class, 'edit'])->name('shop-settings.edit');
+        Route::put('shop-settings', [ShopSettingController::class, 'update'])->name('shop-settings.update');
     });
 });
 

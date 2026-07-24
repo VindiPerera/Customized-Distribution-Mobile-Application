@@ -80,7 +80,7 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(
-                  labelText: 'Name',
+                  label: RequiredLabel('Name'),
                   prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,

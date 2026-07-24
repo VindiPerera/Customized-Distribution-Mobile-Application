@@ -10,7 +10,7 @@
                 @method('PUT')
 
                 <div>
-                    <x-input-label for="name" value="Name" />
+                    <x-input-label for="name" value="Name" required />
                     <x-text-input id="name" name="name" value="{{ old('name', $customer->name) }}" class="mt-1 block w-full" required autofocus />
                     <x-input-error :messages="$errors->get('name')" class="mt-1" />
                 </div>
@@ -31,7 +31,7 @@
                 </div>
 
                 <div>
-                    <x-input-label for="credit_limit" value="Credit Limit (Rs.)" />
+                    <x-input-label for="credit_limit" value="Credit Limit (Rs.)" required />
                     <x-text-input id="credit_limit" type="number" step="0.01" min="0" name="credit_limit" value="{{ old('credit_limit', $customer->credit_limit) }}" class="mt-1 block w-full" required />
                     <x-input-error :messages="$errors->get('credit_limit')" class="mt-1" />
                 </div>

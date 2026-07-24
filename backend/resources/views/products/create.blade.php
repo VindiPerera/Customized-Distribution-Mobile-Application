@@ -16,7 +16,7 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <x-input-label for="sku" value="SKU" />
+                        <x-input-label for="sku" value="SKU" required />
                         <x-text-input id="sku" name="sku" value="{{ old('sku') }}" class="mt-1 block w-full" required autofocus />
                         <x-input-error :messages="$errors->get('sku')" class="mt-1" />
                     </div>
@@ -40,14 +40,14 @@
                 </div>
 
                 <div>
-                    <x-input-label for="name" value="Name" />
+                    <x-input-label for="name" value="Name" required />
                     <x-text-input id="name" name="name" value="{{ old('name') }}" class="mt-1 block w-full" required />
                     <x-input-error :messages="$errors->get('name')" class="mt-1" />
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <x-input-label for="category_id" value="Category" />
+                        <x-input-label for="category_id" value="Category" required />
                         <select id="category_id" name="category_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent" required>
                             <option value="">Select category...</option>
                             @foreach ($categories as $category)
@@ -57,7 +57,7 @@
                         <x-input-error :messages="$errors->get('category_id')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="supplier_id" value="Supplier" />
+                        <x-input-label for="supplier_id" value="Supplier" required />
                         <select id="supplier_id" name="supplier_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent" required>
                             <option value="">Select supplier...</option>
                             @foreach ($suppliers as $supplier)
@@ -74,7 +74,7 @@
                         <x-text-input id="cost_price" type="number" step="0.01" min="0" name="cost_price" value="{{ old('cost_price', 0) }}" class="mt-1 block w-full" />
                     </div>
                     <div>
-                        <x-input-label for="selling_price" value="Selling Price (Rs.)" />
+                        <x-input-label for="selling_price" value="Selling Price (Rs.)" required />
                         <x-text-input id="selling_price" type="number" step="0.01" min="0" name="selling_price" value="{{ old('selling_price') }}" class="mt-1 block w-full" required />
                         <x-input-error :messages="$errors->get('selling_price')" class="mt-1" />
                     </div>
@@ -86,7 +86,7 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <x-input-label for="stock_quantity" value="Opening Stock" />
+                        <x-input-label for="stock_quantity" value="Opening Stock" required />
                         <x-text-input id="stock_quantity" type="number" min="0" name="stock_quantity" value="{{ old('stock_quantity', 0) }}" class="mt-1 block w-full" required />
                         <x-input-error :messages="$errors->get('stock_quantity')" class="mt-1" />
                     </div>

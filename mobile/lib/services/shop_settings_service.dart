@@ -1,19 +1,13 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/shop_settings.dart';
+import 'api_client.dart';
 
 class ShopSettingsService {
-  static const _key = 'shop_settings';
+  final ApiClient _api;
+
+  ShopSettingsService(this._api);
 
   Future<ShopSettings> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
-    if (raw == null) return ShopSettings.mock;
-    return ShopSettings.fromJson(jsonDecode(raw));
-  }
-
-  Future<void> save(ShopSettings settings) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(settings.toJson()));
+    final data = await _api.get('/shop-settings');
+    return ShopSettings.fromJson(data);
   }
 }

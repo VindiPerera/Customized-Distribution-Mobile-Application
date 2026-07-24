@@ -13,45 +13,21 @@ class ShopSettings {
     required this.footerNote,
   });
 
-  static const mock = ShopSettings(
-    name: 'Jaan Retail Store',
-    address: '123 Main Street, Colombo',
-    phone: '011-2345678',
-    taxId: 'TIN: 000000000',
+  static const fallback = ShopSettings(
+    name: 'Your Shop',
+    address: '',
+    phone: '',
+    taxId: '',
     footerNote: 'Thank you! Come again.',
   );
 
-  ShopSettings copyWith({
-    String? name,
-    String? address,
-    String? phone,
-    String? taxId,
-    String? footerNote,
-  }) {
-    return ShopSettings(
-      name: name ?? this.name,
-      address: address ?? this.address,
-      phone: phone ?? this.phone,
-      taxId: taxId ?? this.taxId,
-      footerNote: footerNote ?? this.footerNote,
-    );
-  }
-
-  Map<String, String> toJson() => {
-        'name': name,
-        'address': address,
-        'phone': phone,
-        'taxId': taxId,
-        'footerNote': footerNote,
-      };
-
   factory ShopSettings.fromJson(Map<String, dynamic> json) {
     return ShopSettings(
-      name: json['name'] ?? mock.name,
-      address: json['address'] ?? mock.address,
-      phone: json['phone'] ?? mock.phone,
-      taxId: json['taxId'] ?? mock.taxId,
-      footerNote: json['footerNote'] ?? mock.footerNote,
+      name: (json['name'] as String?)?.isNotEmpty == true ? json['name'] : fallback.name,
+      address: json['address'] ?? '',
+      phone: json['phone'] ?? '',
+      taxId: json['tax_id'] ?? '',
+      footerNote: json['footer_note'] ?? '',
     );
   }
 }

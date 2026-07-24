@@ -2,7 +2,10 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-display text-xl font-semibold text-ink leading-tight">Products</h2>
-            <a href="{{ route('products.create') }}" class="px-4 py-2 bg-accent text-white text-sm rounded-md hover:bg-accent-hover">+ New Product</a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('stock-adjustments.create') }}" class="px-4 py-2 bg-line-soft text-ink text-sm rounded-md hover:bg-line">Stock Adjustment</a>
+                <a href="{{ route('products.create') }}" class="px-4 py-2 bg-accent text-white text-sm rounded-md hover:bg-accent-hover">+ New Product</a>
+            </div>
         </div>
     </x-slot>
 
@@ -82,7 +85,8 @@
                                     {{ $product->stock_quantity }} {{ $product->unit }}
                                 </td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                                    <a href="{{ route('products.edit', $product) }}" class="text-accent hover:underline">Edit</a>
+                                    <a href="{{ route('stock-adjustments.create', ['product_id' => $product->id]) }}" class="text-accent hover:underline">Adjust Stock</a>
+                                    <a href="{{ route('products.edit', $product) }}" class="text-accent hover:underline ml-3">Edit</a>
                                     <form method="POST" action="{{ route('products.destroy', $product) }}" class="inline" onsubmit="return confirm('Delete this product? This cannot be undone.')">
                                         @csrf
                                         @method('DELETE')

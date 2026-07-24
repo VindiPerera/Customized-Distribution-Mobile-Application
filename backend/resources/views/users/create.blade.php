@@ -9,19 +9,19 @@
                 @csrf
 
                 <div>
-                    <x-input-label for="name" value="Name" />
+                    <x-input-label for="name" value="Name" required />
                     <x-text-input id="name" name="name" value="{{ old('name') }}" class="mt-1 block w-full" required autofocus />
                     <x-input-error :messages="$errors->get('name')" class="mt-1" />
                 </div>
 
                 <div>
-                    <x-input-label for="email" value="Email" />
+                    <x-input-label for="email" value="Email" required />
                     <x-text-input id="email" type="email" name="email" value="{{ old('email') }}" class="mt-1 block w-full" required />
                     <x-input-error :messages="$errors->get('email')" class="mt-1" />
                 </div>
 
                 <div>
-                    <x-input-label for="password" value="Password" />
+                    <x-input-label for="password" value="Password" required />
                     <x-text-input id="password" type="password" name="password" class="mt-1 block w-full" required />
                     <x-input-error :messages="$errors->get('password')" class="mt-1" />
                 </div>

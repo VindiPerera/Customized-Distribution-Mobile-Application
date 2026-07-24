@@ -32,6 +32,8 @@
                             ['route' => 'sales.index', 'active' => 'sales.*', 'label' => 'Sales', 'icon' => 'receipt'],
                             ['route' => 'customers.index', 'active' => 'customers.*', 'label' => 'Customers', 'icon' => 'users'],
                             ['route' => 'products.index', 'active' => 'products.*', 'label' => 'Products', 'icon' => 'box'],
+                            ['route' => 'stock-adjustments.index', 'active' => 'stock-adjustments.*', 'label' => 'Stock Adjustments', 'icon' => 'chart'],
+                            ['route' => 'stock-transactions.index', 'active' => 'stock-transactions.*', 'label' => 'Stock Transactions', 'icon' => 'receipt'],
                             ['route' => 'categories.index', 'active' => 'categories.*', 'label' => 'Categories', 'icon' => 'tag'],
                             ['route' => 'suppliers.index', 'active' => 'suppliers.*', 'label' => 'Suppliers', 'icon' => 'truck'],
                             ['route' => 'reports.receivables', 'active' => 'reports.receivables', 'label' => 'Receivables', 'icon' => 'chart'],
@@ -59,6 +61,11 @@
                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-[0.9rem] font-medium transition-colors {{ request()->routeIs('users.*') ? 'bg-white text-accent' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
                                 <x-nav-icon name="badge" class="w-[18px] h-[18px] shrink-0" />
                                 Staff
+                            </a>
+                            <a href="{{ route('shop-settings.edit') }}"
+                               class="flex items-center gap-3 px-3 py-2 rounded-lg text-[0.9rem] font-medium transition-colors {{ request()->routeIs('shop-settings.*') ? 'bg-white text-accent' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
+                                <x-nav-icon name="settings" class="w-[18px] h-[18px] shrink-0" />
+                                Shop Details
                             </a>
                         </div>
                     @endif

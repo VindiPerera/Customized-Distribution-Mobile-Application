@@ -120,31 +120,6 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('status', 'Product updated.');
     }
 
-    public function adjustStock(Request $request, Product $product)
-    {
-        $data = $request->validate([
-            'quantity' => ['required', 'integer'],
-            'notes' => ['nullable', 'string'],
-        ]);
-
-        $newQty = $product->stock_quantity + $data['quantity'];
-        if ($newQty < 0) {
-            return back()->withErrors(['quantity' => 'Adjustment would result in negative stock.']);
-        }
-
-        $product->stockMovements()->create([
-            'type' => 'adjustment',
-            'quantity' => $data['quantity'],
-            'quantity_after' => $newQty,
-            'notes' => $data['notes'] ?? null,
-            'user_id' => $request->user()->id,
-        ]);
-
-        $product->update(['stock_quantity' => $newQty]);
-
-        return redirect()->route('products.index')->with('status', 'Stock adjusted.');
-    }
-
     public function destroy(Product $product)
     {
         if ($product->saleItems()->exists()) {

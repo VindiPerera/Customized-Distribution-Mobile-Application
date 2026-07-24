@@ -31,7 +31,7 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <x-input-label for="sku" value="SKU" />
+                        <x-input-label for="sku" value="SKU" required />
                         <x-text-input id="sku" name="sku" value="{{ old('sku', $product->sku) }}" class="mt-1 block w-full" required autofocus />
                         <x-input-error :messages="$errors->get('sku')" class="mt-1" />
                     </div>
@@ -55,14 +55,14 @@
                 </div>
 
                 <div>
-                    <x-input-label for="name" value="Name" />
+                    <x-input-label for="name" value="Name" required />
                     <x-text-input id="name" name="name" value="{{ old('name', $product->name) }}" class="mt-1 block w-full" required />
                     <x-input-error :messages="$errors->get('name')" class="mt-1" />
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <x-input-label for="category_id" value="Category" />
+                        <x-input-label for="category_id" value="Category" required />
                         <select id="category_id" name="category_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent" required>
                             <option value="">Select category...</option>
                             @foreach ($categories as $category)
@@ -72,7 +72,7 @@
                         <x-input-error :messages="$errors->get('category_id')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="supplier_id" value="Supplier" />
+                        <x-input-label for="supplier_id" value="Supplier" required />
                         <select id="supplier_id" name="supplier_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent" required>
                             <option value="">Select supplier...</option>
                             @foreach ($suppliers as $supplier)
@@ -89,7 +89,7 @@
                         <x-text-input id="cost_price" type="number" step="0.01" min="0" name="cost_price" value="{{ old('cost_price', $product->cost_price) }}" class="mt-1 block w-full" />
                     </div>
                     <div>
-                        <x-input-label for="selling_price" value="Selling Price (Rs.)" />
+                        <x-input-label for="selling_price" value="Selling Price (Rs.)" required />
                         <x-text-input id="selling_price" type="number" step="0.01" min="0" name="selling_price" value="{{ old('selling_price', $product->selling_price) }}" class="mt-1 block w-full" required />
                         <x-input-error :messages="$errors->get('selling_price')" class="mt-1" />
                     </div>
@@ -122,26 +122,6 @@
                     <x-primary-button>Save Changes</x-primary-button>
                 </div>
             </form>
-
-            <div class="bg-surface border border-line shadow-sm rounded-lg p-6">
-                <h3 class="font-semibold text-ink mb-1">Adjust Stock</h3>
-                <p class="text-sm text-ink-soft mb-3">Current stock: <span class="font-semibold">{{ $product->stock_quantity }} {{ $product->unit }}</span>. Use a positive number to add stock, negative to remove (e.g. damages, corrections).</p>
-                <form method="POST" action="{{ route('products.adjust-stock', $product) }}" class="flex gap-3 items-end">
-                    @csrf
-                    <div>
-                        <x-input-label for="quantity" value="Quantity Change" />
-                        <x-text-input id="quantity" type="number" name="quantity" class="mt-1 w-32" required />
-                    </div>
-                    <div class="flex-1">
-                        <x-input-label for="notes" value="Reason (optional)" />
-                        <x-text-input id="notes" name="notes" class="mt-1 block w-full" />
-                    </div>
-                    <x-secondary-button type="submit">Apply</x-secondary-button>
-                </form>
-                @error('quantity')
-                    <div class="text-critical text-sm mt-2">{{ $message }}</div>
-                @enderror
-            </div>
 
         </div>
     </div>

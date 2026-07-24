@@ -26,7 +26,7 @@
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <x-input-label value="Payment Type" />
+                            <x-input-label value="Payment Type" required />
                             <div class="mt-1 flex flex-wrap gap-2">
                                 <template x-for="type in paymentTypes" :key="type.value">
                                     <label class="flex items-center gap-1.5 border rounded-md px-3 py-1.5 cursor-pointer" :class="paymentType === type.value ? 'border-accent bg-accent-soft' : 'border-line'">
@@ -38,9 +38,9 @@
                         </div>
 
                         <div x-show="paymentType === 'credit'">
-                            <x-input-label for="customer_id" value="Customer" />
+                            <x-input-label for="customer_id" value="Customer" required />
                             <div class="mt-1 flex items-center gap-2">
-                                <select id="customer_id" name="customer_id" x-model="customerId" class="block w-full border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent">
+                                <select id="customer_id" name="customer_id" x-model="customerId" class="block w-full border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent" required>
                                     <option value="">Select customer...</option>
                                     <template x-for="c in customers" :key="c.id">
                                         <option :value="c.id" x-text="c.balance > 0 ? c.name + ' (Owes Rs. ' + c.balance.toFixed(0) + ')' : c.name"></option>

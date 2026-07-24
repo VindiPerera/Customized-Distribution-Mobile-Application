@@ -21,6 +21,26 @@ class AppColors {
   static const criticalSoft = Color(0xFFFBE9E9);
 }
 
+/// Field label with a trailing red asterisk, for use as an [InputDecoration.label]
+/// on required form fields (mirrors the admin web portal's `x-input-label :required`).
+class RequiredLabel extends StatelessWidget {
+  final String text;
+
+  const RequiredLabel(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        text: text,
+        children: const [
+          TextSpan(text: ' *', style: TextStyle(color: AppColors.critical)),
+        ],
+      ),
+    );
+  }
+}
+
 ThemeData buildAppTheme() {
   final colorScheme = ColorScheme.fromSeed(
     seedColor: AppColors.accent,

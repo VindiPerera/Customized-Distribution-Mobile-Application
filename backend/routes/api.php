@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\ShopSettingController;
 use Illuminate\Support\Facades\Route;
 
 // All API route names are prefixed with 'api.' so they never collide with
@@ -27,5 +28,7 @@ Route::name('api.')->group(function () {
         Route::apiResource('sales', SaleController::class)->only(['index', 'store', 'show']);
 
         Route::apiResource('payments', PaymentController::class)->only(['index', 'store']);
+
+        Route::get('shop-settings', [ShopSettingController::class, 'show']);
     });
 });

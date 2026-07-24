@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/receipt_data.dart';
 import '../models/shop_settings.dart';
+import '../providers/auth_provider.dart';
 import '../services/bluetooth_printer_service.dart';
 import '../services/shop_settings_service.dart';
 import '../theme.dart';
@@ -18,7 +20,7 @@ class ReceiptPreviewScreen extends StatefulWidget {
 class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
   final _boundaryKey = GlobalKey();
   final _printerService = BluetoothPrinterService();
-  final _settingsService = ShopSettingsService();
+  late final ShopSettingsService _settingsService;
 
   ShopSettings? _shop;
   bool _isPrinting = false;
@@ -27,7 +29,11 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
   @override
   void initState() {
     super.initState();
-    _settingsService.load().then((s) => setState(() => _shop = s));
+    _settingsService = ShopSettingsService(context.read<AuthProvider>().api);
+    _settingsService.load().then(
+          (s) => setState(() => _shop = s),
+          onError: (_) => setState(() => _shop = ShopSettings.fallback),
+        );
   }
 
   Future<void> _print() async {

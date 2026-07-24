@@ -9,7 +9,7 @@
                 @csrf
 
                 <div>
-                    <x-input-label for="name" value="Name" />
+                    <x-input-label for="name" value="Name" required />
                     <x-text-input id="name" name="name" value="{{ old('name') }}" class="mt-1 block w-full" required autofocus />
                     <x-input-error :messages="$errors->get('name')" class="mt-1" />
                 </div>

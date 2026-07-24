@@ -28,6 +28,7 @@ class Sale {
   final String paymentType;
   final double totalAmount;
   final DateTime saleDate;
+  final String? customerName;
 
   Sale({
     required this.id,
@@ -35,6 +36,7 @@ class Sale {
     required this.paymentType,
     required this.totalAmount,
     required this.saleDate,
+    this.customerName,
   });
 
   factory Sale.fromJson(Map<String, dynamic> json) {
@@ -44,6 +46,7 @@ class Sale {
       paymentType: json['payment_type'],
       totalAmount: double.parse(json['total_amount'].toString()),
       saleDate: DateTime.parse(json['sale_date']),
+      customerName: json['customer'] != null ? json['customer']['name'] : null,
     );
   }
 }

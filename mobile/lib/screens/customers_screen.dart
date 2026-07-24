@@ -110,7 +110,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final c = customers[i];
-                final overLimit = c.currentBalance > c.creditLimit;
+                final hasBalance = c.currentBalance > 0;
                 final initial = c.name.isNotEmpty ? c.name[0].toUpperCase() : '?';
 
                 return Card(
@@ -140,27 +140,15 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Rs. ${c.currentBalance.toStringAsFixed(2)} of Rs. ${c.creditLimit.toStringAsFixed(2)}',
+                                  hasBalance
+                                      ? 'Owes Rs. ${c.currentBalance.toStringAsFixed(2)}'
+                                      : 'No outstanding balance',
                                   style: TextStyle(
                                     fontSize: 12.5,
-                                    color: overLimit ? AppColors.critical : AppColors.inkSoft,
-                                    fontWeight: overLimit ? FontWeight.w600 : FontWeight.w400,
+                                    color: hasBalance ? AppColors.warn : AppColors.inkSoft,
+                                    fontWeight: hasBalance ? FontWeight.w600 : FontWeight.w400,
                                   ),
                                 ),
-                                if (overLimit) ...[
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.criticalSoft,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Text(
-                                      'Over limit',
-                                      style: TextStyle(fontSize: 11, color: AppColors.critical, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
                           ),

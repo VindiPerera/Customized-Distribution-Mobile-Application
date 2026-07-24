@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Exceptions\CreditLimitExceededException;
 use App\Exceptions\InvalidSplitPaymentException;
 use App\Http\Controllers\Controller;
 use App\Models\Sale;
@@ -41,7 +40,7 @@ class SaleController extends Controller
 
         try {
             $sale = $this->saleService->createSale($data, $data['items']);
-        } catch (CreditLimitExceededException|InvalidSplitPaymentException $e) {
+        } catch (InvalidSplitPaymentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 

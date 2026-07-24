@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Exceptions\CreditLimitExceededException;
 use App\Models\Customer;
 use App\Models\CustomerLedgerEntry;
 use App\Models\Payment;
@@ -13,7 +12,6 @@ class CreditService
 {
     /**
      * Record a credit sale against a customer's account.
-     * Throws if the sale would exceed the customer's credit limit.
      */
     public function recordSaleOnCredit(Customer $customer, Sale $sale): CustomerLedgerEntry
     {
@@ -21,13 +19,6 @@ class CreditService
             $lockedCustomer = Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail();
 
             $newBalance = (float) $lockedCustomer->current_balance + (float) $sale->total_amount;
-
-            if ($newBalance > (float) $lockedCustomer->credit_limit) {
-                throw new CreditLimitExceededException(
-                    (float) $sale->total_amount,
-                    $lockedCustomer->availableCredit()
-                );
-            }
 
             $entry = $lockedCustomer->ledgerEntries()->create([
                 'type' => 'sale',

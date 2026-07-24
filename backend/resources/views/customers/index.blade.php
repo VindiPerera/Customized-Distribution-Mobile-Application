@@ -29,20 +29,17 @@
                             <th class="px-4 py-3">Name</th>
                             <th class="px-4 py-3">Phone</th>
                             <th class="px-4 py-3 text-right">Balance</th>
-                            <th class="px-4 py-3 text-right">Credit Limit</th>
                             <th class="px-4 py-3"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($customers as $customer)
-                            @php $overLimit = $customer->current_balance > $customer->credit_limit; @endphp
                             <tr class="border-t border-line">
                                 <td class="px-4 py-3 font-medium text-ink">{{ $customer->name }}</td>
                                 <td class="px-4 py-3 text-ink-soft">{{ $customer->phone ?? '—' }}</td>
-                                <td class="px-4 py-3 text-right {{ $overLimit ? 'text-critical font-semibold' : '' }}">
+                                <td class="px-4 py-3 text-right {{ $customer->current_balance > 0 ? 'text-warn font-semibold' : '' }}">
                                     Rs. {{ number_format($customer->current_balance, 2) }}
                                 </td>
-                                <td class="px-4 py-3 text-right text-ink-soft">Rs. {{ number_format($customer->credit_limit, 2) }}</td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
                                     <a href="{{ route('customers.show', $customer) }}" class="text-accent hover:underline">View</a>
                                     <form method="POST" action="{{ route('customers.destroy', $customer) }}" class="inline" onsubmit="return confirm('Delete this customer? This cannot be undone.')">

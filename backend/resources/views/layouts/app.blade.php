@@ -34,7 +34,8 @@
                             ['route' => 'products.index', 'active' => 'products.*', 'label' => 'Products', 'icon' => 'box'],
                             ['route' => 'categories.index', 'active' => 'categories.*', 'label' => 'Categories', 'icon' => 'tag'],
                             ['route' => 'suppliers.index', 'active' => 'suppliers.*', 'label' => 'Suppliers', 'icon' => 'truck'],
-                            ['route' => 'reports.index', 'active' => 'reports.*', 'label' => 'Reports', 'icon' => 'chart'],
+                            ['route' => 'reports.receivables', 'active' => 'reports.receivables', 'label' => 'Receivables', 'icon' => 'chart'],
+                            ['route' => 'reports.low-stock', 'active' => 'reports.low-stock', 'label' => 'Low Stock', 'icon' => 'box'],
                         ];
                     @endphp
 
@@ -49,6 +50,11 @@
 
                     @if (Auth::user()->isAdmin())
                         <div class="pt-3 mt-3 border-t border-white/15">
+                            <a href="{{ route('reports.dashboard') }}"
+                               class="flex items-center gap-3 px-3 py-2 rounded-lg text-[0.9rem] font-medium transition-colors {{ request()->routeIs('reports.dashboard') ? 'bg-white text-accent' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
+                                <x-nav-icon name="chart" class="w-[18px] h-[18px] shrink-0" />
+                                Reports Dashboard
+                            </a>
                             <a href="{{ route('users.index') }}"
                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-[0.9rem] font-medium transition-colors {{ request()->routeIs('users.*') ? 'bg-white text-accent' : 'text-white/80 hover:bg-white/10 hover:text-white' }}">
                                 <x-nav-icon name="badge" class="w-[18px] h-[18px] shrink-0" />

@@ -34,6 +34,7 @@
                             <th class="px-4 py-3">Type</th>
                             <th class="px-4 py-3">Sold By</th>
                             <th class="px-4 py-3 text-right">Total</th>
+                            <th class="px-4 py-3"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -49,9 +50,12 @@
                                 </td>
                                 <td class="px-4 py-3 text-ink-soft">{{ $sale->user->name }}</td>
                                 <td class="px-4 py-3 text-right font-medium">Rs. {{ number_format($sale->total_amount, 2) }}</td>
+                                <td class="px-4 py-3 text-right whitespace-nowrap">
+                                    <a href="{{ route('sales.show', $sale) }}" target="_blank" class="text-accent hover:underline text-xs">Preview Bill</a>
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="px-4 py-8 text-center text-ink-soft">No sales found.</td></tr>
+                            <tr><td colspan="7" class="px-4 py-8 text-center text-ink-soft">No sales found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

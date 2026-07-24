@@ -4,6 +4,8 @@ import '../providers/auth_provider.dart';
 import '../theme.dart';
 import 'customers_screen.dart';
 import 'new_sale_screen.dart';
+import 'sales_history_screen.dart';
+import 'shop_settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,6 +19,14 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Shop details',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ShopSettingsScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Log out',
@@ -64,6 +74,15 @@ class HomeScreen extends StatelessWidget {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                  ),
+                ),
+                _DashboardTile(
+                  icon: Icons.receipt_long_rounded,
+                  label: 'Sales History',
+                  subtitle: 'View & reprint bills',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SalesHistoryScreen()),
                   ),
                 ),
               ],

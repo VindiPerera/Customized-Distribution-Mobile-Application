@@ -24,10 +24,16 @@
                     <x-nav-link :href="route('products.index')" :active="request()->routeIs('products.*')">
                         {{ __('Products') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
-                        {{ __('Reports') }}
+                    <x-nav-link :href="route('reports.receivables')" :active="request()->routeIs('reports.receivables')">
+                        {{ __('Receivables') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('reports.low-stock')" :active="request()->routeIs('reports.low-stock')">
+                        {{ __('Low Stock') }}
                     </x-nav-link>
                     @if (Auth::user()->isAdmin())
+                        <x-nav-link :href="route('reports.dashboard')" :active="request()->routeIs('reports.dashboard')">
+                            {{ __('Reports Dashboard') }}
+                        </x-nav-link>
                         <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                             {{ __('Staff') }}
                         </x-nav-link>
@@ -96,10 +102,16 @@
             <x-responsive-nav-link :href="route('products.index')" :active="request()->routeIs('products.*')">
                 {{ __('Products') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
-                {{ __('Reports') }}
+            <x-responsive-nav-link :href="route('reports.receivables')" :active="request()->routeIs('reports.receivables')">
+                {{ __('Receivables') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('reports.low-stock')" :active="request()->routeIs('reports.low-stock')">
+                {{ __('Low Stock') }}
             </x-responsive-nav-link>
             @if (Auth::user()->isAdmin())
+                <x-responsive-nav-link :href="route('reports.dashboard')" :active="request()->routeIs('reports.dashboard')">
+                    {{ __('Reports Dashboard') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                     {{ __('Staff') }}
                 </x-responsive-nav-link>

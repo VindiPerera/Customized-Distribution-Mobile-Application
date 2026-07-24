@@ -35,10 +35,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('suppliers', SupplierController::class)->except(['show']);
 
     Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/receivables', [ReportController::class, 'receivables'])->name('receivables');
         Route::get('/low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
-        Route::get('/sales-summary', [ReportController::class, 'salesSummary'])->name('sales-summary');
 
         Route::middleware('admin')->group(function () {
             Route::get('/dashboard', [ReportDashboardController::class, 'index'])->name('dashboard');

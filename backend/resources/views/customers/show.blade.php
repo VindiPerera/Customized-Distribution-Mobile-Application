@@ -23,20 +23,12 @@
                 <div class="bg-critical-soft text-critical text-sm px-4 py-2 rounded">{{ $errors->first('customer') }}</div>
             @endif
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-1 gap-4">
                 <div class="bg-surface border border-line shadow-sm rounded-lg p-5">
                     <div class="text-sm text-ink-soft">Current Balance</div>
-                    <div class="text-2xl font-bold {{ $customer->current_balance > $customer->credit_limit ? 'text-critical' : 'text-ink' }}">
+                    <div class="text-2xl font-bold {{ $customer->current_balance > 0 ? 'text-warn' : 'text-ink' }}">
                         Rs. {{ number_format($customer->current_balance, 2) }}
                     </div>
-                </div>
-                <div class="bg-surface border border-line shadow-sm rounded-lg p-5">
-                    <div class="text-sm text-ink-soft">Credit Limit</div>
-                    <div class="text-2xl font-bold text-ink">Rs. {{ number_format($customer->credit_limit, 2) }}</div>
-                </div>
-                <div class="bg-surface border border-line shadow-sm rounded-lg p-5">
-                    <div class="text-sm text-ink-soft">Available Credit</div>
-                    <div class="text-2xl font-bold text-good">Rs. {{ number_format($customer->availableCredit(), 2) }}</div>
                 </div>
             </div>
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/customer.dart';
 import '../models/product.dart';
+import '../models/receipt_data.dart';
 import '../models/sale.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
@@ -9,6 +10,7 @@ import '../services/customer_service.dart';
 import '../services/product_service.dart';
 import '../services/sale_service.dart';
 import '../theme.dart';
+import 'receipt_preview_screen.dart';
 
 class _CartLine {
   final Product product;
@@ -138,6 +140,58 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
+  Future<void> _showSettleCreditDialog(Customer customer) async {
+    final amountController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Settle credit', style: TextStyle(fontSize: 17)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(customer.name, style: const TextStyle(color: AppColors.inkSoft, fontSize: 13)),
+            const SizedBox(height: 4),
+            Text(
+              'Currently owes Rs. ${customer.currentBalance.toStringAsFixed(2)}',
+              style: const TextStyle(color: AppColors.inkSoft, fontSize: 12.5),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: amountController,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+                prefixText: 'Rs. ',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final amount = double.tryParse(amountController.text);
+              if (amount == null || amount <= 0) return;
+              Navigator.pop(ctx);
+              await _customerService.recordPayment(customerId: customer.id, amount: amount);
+              final customers = await _customerService.list();
+              if (mounted) {
+                setState(() {
+                  _customers = customers;
+                  _selectedCustomer = customers.firstWhere((c) => c.id == customer.id, orElse: () => customer);
+                });
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addSplitLine() {
     setState(() => _splitLines.add(_SplitLine(method: 'cash')));
   }
@@ -169,7 +223,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     });
 
     try {
-      await _saleService.createSale(
+      final result = await _saleService.createSale(
         customerId: _selectedCustomer?.id,
         paymentType: _paymentType,
         items: _cart.values
@@ -179,11 +233,36 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             ? _splitLines.map((l) => SalePaymentInput(method: l.method, amount: l.amount)).toList()
             : null,
       );
+      if (!mounted) return;
+      final sale = Sale.fromJson(result);
+      final cashierName = context.read<AuthProvider>().currentUser?['name'] as String? ?? '-';
+
+      final receipt = ReceiptData(
+        invoiceNumber: sale.invoiceNumber,
+        date: sale.saleDate,
+        lines: _cart.values
+            .map((l) => ReceiptLine(
+                  name: l.product.name,
+                  quantity: l.quantity,
+                  unitPrice: l.product.sellingPrice,
+                  lineTotal: l.lineTotal,
+                ))
+            .toList(),
+        total: _total,
+        paymentType: _paymentType,
+        customerName: _selectedCustomer?.name,
+        cashierName: cashierName,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sale recorded successfully.')),
         );
-        Navigator.pop(context);
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ReceiptPreviewScreen(receipt: receipt)),
+        );
+        if (mounted) Navigator.pop(context);
       }
     } on ApiException catch (e) {
       setState(() => _error = e.message);
@@ -367,19 +446,45 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 ),
                 if (_paymentType == 'credit') ...[
                   const SizedBox(height: 10),
-                  DropdownButtonFormField<Customer>(
-                    initialValue: _selectedCustomer,
-                    decoration: const InputDecoration(labelText: 'Customer'),
-                    items: _customers
-                        .map((c) => DropdownMenuItem(
-                              value: c,
-                              child: Text(
-                                '${c.name} (Available: Rs. ${c.availableCredit.toStringAsFixed(0)})',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (c) => setState(() => _selectedCustomer = c),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<Customer>(
+                          initialValue: _selectedCustomer,
+                          decoration: const InputDecoration(labelText: 'Customer'),
+                          items: _customers
+                              .map((c) => DropdownMenuItem(
+                                    value: c,
+                                    child: Text(
+                                      c.currentBalance > 0
+                                          ? '${c.name} (Owes Rs. ${c.currentBalance.toStringAsFixed(0)})'
+                                          : c.name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ))
+                              .toList(),
+                          onChanged: (c) => setState(() => _selectedCustomer = c),
+                        ),
+                      ),
+                      if (_selectedCustomer != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          height: 56,
+                          width: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.goodSoft,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.payments_outlined, size: 19, color: AppColors.good),
+                            tooltip: 'Settle credit',
+                            onPressed: () => _showSettleCreditDialog(_selectedCustomer!),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
                 if (_paymentType == 'split') ...[

@@ -1,0 +1,54 @@
+import 'sale_detail.dart';
+
+class ReceiptLine {
+  final String name;
+  final int quantity;
+  final double unitPrice;
+  final double lineTotal;
+
+  ReceiptLine({
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+    required this.lineTotal,
+  });
+}
+
+class ReceiptData {
+  final String invoiceNumber;
+  final DateTime date;
+  final List<ReceiptLine> lines;
+  final double total;
+  final String paymentType;
+  final String? customerName;
+  final String cashierName;
+
+  ReceiptData({
+    required this.invoiceNumber,
+    required this.date,
+    required this.lines,
+    required this.total,
+    required this.paymentType,
+    this.customerName,
+    required this.cashierName,
+  });
+
+  factory ReceiptData.fromSaleDetail(SaleDetail sale) {
+    return ReceiptData(
+      invoiceNumber: sale.invoiceNumber,
+      date: sale.saleDate,
+      lines: sale.items
+          .map((i) => ReceiptLine(
+                name: i.productName,
+                quantity: i.quantity,
+                unitPrice: i.unitPrice,
+                lineTotal: i.lineTotal,
+              ))
+          .toList(),
+      total: sale.totalAmount,
+      paymentType: sale.paymentType,
+      customerName: sale.customerName,
+      cashierName: sale.cashierName,
+    );
+  }
+}

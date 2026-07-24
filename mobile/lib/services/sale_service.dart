@@ -1,4 +1,5 @@
 import '../models/sale.dart';
+import '../models/sale_detail.dart';
 import 'api_client.dart';
 
 class SaleService {
@@ -26,5 +27,10 @@ class SaleService {
     final data = await _api.get('/sales');
     final items = data['data'] as List;
     return items.map((e) => Sale.fromJson(e)).toList();
+  }
+
+  Future<SaleDetail> get(int id) async {
+    final data = await _api.get('/sales/$id');
+    return SaleDetail.fromJson(data);
   }
 }

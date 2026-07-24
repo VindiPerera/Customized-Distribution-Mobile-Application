@@ -6,16 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerLedgerEntry;
 use App\Models\Product;
-use App\Models\Sale;
-use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    public function index()
-    {
-        return view('reports.index');
-    }
-
     public function receivables()
     {
         $customers = Customer::where('current_balance', '>', 0)
@@ -52,28 +45,5 @@ class ReportController extends Controller
             ->get();
 
         return view('reports.low-stock', compact('products'));
-    }
-
-    public function salesSummary(Request $request)
-    {
-        $from = $request->date('from') ?? now()->startOfMonth();
-        $to = $request->date('to') ?? now()->endOfDay();
-
-        $sales = Sale::whereBetween('sale_date', [$from, $to])
-            ->where('status', 'completed')
-            ->get();
-
-        $summary = [
-            'total' => $sales->sum('total_amount'),
-            'paid_total' => $sales->sum('paid_amount'),
-            'credit_total' => $sales->where('payment_type', 'credit')->sum('total_amount'),
-            'count' => $sales->count(),
-        ];
-
-        $byDay = $sales->groupBy(fn ($s) => $s->sale_date->format('Y-m-d'))
-            ->map(fn ($group) => $group->sum('total_amount'))
-            ->sortKeys();
-
-        return view('reports.sales-summary', compact('summary', 'byDay', 'from', 'to'));
     }
 }

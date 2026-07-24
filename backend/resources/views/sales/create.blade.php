@@ -6,7 +6,7 @@
     <div class="py-8"
          x-data="posForm({
             products: {{ $products->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => (float) $p->selling_price, 'stock' => $p->stock_quantity])->values()->toJson() }},
-            customers: {{ $customers->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'available' => (float) $c->availableCredit()])->values()->toJson() }},
+            customers: {{ $customers->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'balance' => (float) $c->current_balance])->values()->toJson() }},
          })">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
             <form method="POST" action="{{ route('sales.store') }}" @submit="if (!validate()) $event.preventDefault()">
@@ -39,12 +39,18 @@
 
                         <div x-show="paymentType === 'credit'">
                             <x-input-label for="customer_id" value="Customer" />
-                            <select id="customer_id" name="customer_id" x-model="customerId" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent">
-                                <option value="">Select customer...</option>
-                                <template x-for="c in customers" :key="c.id">
-                                    <option :value="c.id" x-text="c.name + ' (Available: Rs. ' + c.available.toFixed(0) + ')'"></option>
-                                </template>
-                            </select>
+                            <div class="mt-1 flex items-center gap-2">
+                                <select id="customer_id" name="customer_id" x-model="customerId" class="block w-full border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent">
+                                    <option value="">Select customer...</option>
+                                    <template x-for="c in customers" :key="c.id">
+                                        <option :value="c.id" x-text="c.balance > 0 ? c.name + ' (Owes Rs. ' + c.balance.toFixed(0) + ')' : c.name"></option>
+                                    </template>
+                                </select>
+                                <a :href="customerId ? '/customers/' + customerId : '#'"
+                                   x-show="customerId"
+                                   target="_blank"
+                                   class="shrink-0 text-xs text-accent hover:underline whitespace-nowrap">Settle credit</a>
+                            </div>
                         </div>
                     </div>
 

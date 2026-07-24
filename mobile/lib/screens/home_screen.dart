@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
+import '../widgets/shop_logo.dart';
 import 'customers_screen.dart';
 import 'new_sale_screen.dart';
 import 'sales_history_screen.dart';
@@ -16,7 +17,13 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Row(
+          children: [
+            ShopLogo(size: 32, borderRadius: 8),
+            SizedBox(width: 10),
+            Text('Dashboard'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),

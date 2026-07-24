@@ -1,6 +1,10 @@
 <x-guest-layout>
-    <h1 class="font-display text-[1.7rem] font-semibold text-ink">Welcome back</h1>
-    <p class="mt-1.5 text-sm text-ink-soft">Sign in to manage sales, stock, and customer accounts.</p>
+    <div class="flex justify-center">
+        <img src="{{ asset('logo/logo.jpeg') }}" alt="{{ config('app.name') }}" class="w-40 h-30 rounded-xl object-cover shadow-sm mb-5">
+    </div>
+
+    <h1 class="font-display text-[1.7rem] font-semibold text-ink text-center">Welcome back</h1>
+    <p class="mt-1.5 text-sm text-ink-soft text-center">Sign in to manage sales, stock, and customer accounts.</p>
 
     <x-auth-session-status class="mt-5" :status="session('status')" />
 

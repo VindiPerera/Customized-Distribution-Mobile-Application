@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../theme.dart';
+import '../widgets/shop_logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -54,16 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.accentSoft,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Icon(Icons.storefront_rounded, size: 32, color: AppColors.accent),
-                  ),
+                  const Center(child: ShopLogo(size: 64, borderRadius: 18)),
                   const SizedBox(height: 20),
                   const Text(
                     'Distribution Manager',

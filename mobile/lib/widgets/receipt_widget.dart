@@ -93,6 +93,16 @@ class ReceiptWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Center(
+            child: Image.network(
+              ApiClient.logoUrl,
+              width: 56 * _scale,
+              height: 56 * _scale,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+            ),
+          ),
+          SizedBox(height: 6 * _scale),
           Text(
             shop.name,
             textAlign: TextAlign.center,
@@ -106,6 +116,10 @@ class ReceiptWidget extends StatelessWidget {
             SizedBox(height: 2 * _scale),
             Text(shop.phone, textAlign: TextAlign.center, style: mono.copyWith(fontSize: 13 * _scale)),
           ],
+          SizedBox(height: 2 * _scale),
+          Text('WhatsApp: $_receiptWhatsapp', textAlign: TextAlign.center, style: mono.copyWith(fontSize: 13 * _scale)),
+          SizedBox(height: 2 * _scale),
+          Text(_receiptEmail, textAlign: TextAlign.center, style: mono.copyWith(fontSize: 13 * _scale)),
           if (shop.taxId.isNotEmpty) ...[
             SizedBox(height: 2 * _scale),
             Text(shop.taxId, textAlign: TextAlign.center, style: mono.copyWith(fontSize: 13 * _scale)),

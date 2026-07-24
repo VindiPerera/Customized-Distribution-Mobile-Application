@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\ReportController;
+use App\Http\Controllers\Web\ReportDashboardController;
 use App\Http\Controllers\Web\SaleController;
 use App\Http\Controllers\Web\SupplierController;
 use App\Http\Controllers\Web\UserController;
@@ -38,6 +39,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/receivables', [ReportController::class, 'receivables'])->name('receivables');
         Route::get('/low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
         Route::get('/sales-summary', [ReportController::class, 'salesSummary'])->name('sales-summary');
+
+        Route::middleware('admin')->group(function () {
+            Route::get('/dashboard', [ReportDashboardController::class, 'index'])->name('dashboard');
+            Route::get('/dashboard/export-pdf', [ReportDashboardController::class, 'exportPdf'])->name('dashboard.export-pdf');
+            Route::get('/dashboard/export-excel', [ReportDashboardController::class, 'exportExcel'])->name('dashboard.export-excel');
+        });
     });
 
     Route::middleware('admin')->group(function () {

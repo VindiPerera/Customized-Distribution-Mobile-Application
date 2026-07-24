@@ -63,6 +63,75 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" x-data="{ salesAsTable: false, paymentAsTable: false }">
+                <div class="bg-surface border border-line shadow-sm rounded-lg p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 class="font-semibold text-ink text-sm">Sales Trend</h3>
+                            <p class="text-xs text-ink-soft mt-0.5">Last 30 days</p>
+                        </div>
+                        <button type="button" @click="salesAsTable = !salesAsTable" class="text-xs text-accent hover:underline" x-text="salesAsTable ? 'View chart' : 'View as table'"></button>
+                    </div>
+                    <div x-show="!salesAsTable">
+                        <canvas id="sales-trend-chart" height="220"></canvas>
+                    </div>
+                    <div x-show="salesAsTable" style="display: none;" class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-line-soft">
+                                <tr class="text-left text-ink-soft">
+                                    <th class="px-3 py-2">Period</th>
+                                    <th class="px-3 py-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($salesTrend as $row)
+                                    <tr class="border-t border-line">
+                                        <td class="px-3 py-2">{{ $row['label'] }}</td>
+                                        <td class="px-3 py-2 text-right font-medium">Rs. {{ number_format($row['total'], 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="2" class="px-3 py-6 text-center text-ink-soft">No sales in this range.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-surface border border-line shadow-sm rounded-lg p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 class="font-semibold text-ink text-sm">Payment Method Breakdown</h3>
+                            <p class="text-xs text-ink-soft mt-0.5">Last 30 days</p>
+                        </div>
+                        <button type="button" @click="paymentAsTable = !paymentAsTable" class="text-xs text-accent hover:underline" x-text="paymentAsTable ? 'View chart' : 'View as table'"></button>
+                    </div>
+                    <div x-show="!paymentAsTable">
+                        <canvas id="payment-breakdown-chart" height="220"></canvas>
+                    </div>
+                    <div x-show="paymentAsTable" style="display: none;" class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-line-soft">
+                                <tr class="text-left text-ink-soft">
+                                    <th class="px-3 py-2">Method</th>
+                                    <th class="px-3 py-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($paymentBreakdown as $row)
+                                    <tr class="border-t border-line">
+                                        <td class="px-3 py-2">{{ \Illuminate\Support\Str::headline($row['method']) }}</td>
+                                        <td class="px-3 py-2 text-right font-medium">Rs. {{ number_format($row['total'], 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <script type="application/json" id="sales-trend-data">{!! $salesTrend->toJson() !!}</script>
+            <script type="application/json" id="payment-breakdown-data">{!! $paymentBreakdown->toJson() !!}</script>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-surface border border-line shadow-sm rounded-xl overflow-hidden">
                     <div class="flex items-center justify-between px-5 py-4 border-b border-line">

@@ -27,9 +27,18 @@ class ReportDashboardService
             'cards' => $this->cards($from, $to, $topProducts),
             'salesTrend' => $this->salesTrend($from, $to),
             'paymentBreakdown' => $this->paymentBreakdown($from, $to),
+            'sales' => $this->sales($from, $to),
             'topProducts' => $topProducts,
             'customerBalances' => $this->customerBalances(),
             'supplierStock' => $this->supplierStock($from, $to),
+        ];
+    }
+
+    public function charts(Carbon $from, Carbon $to): array
+    {
+        return [
+            'salesTrend' => $this->salesTrend($from, $to),
+            'paymentBreakdown' => $this->paymentBreakdown($from, $to),
         ];
     }
 
@@ -83,6 +92,26 @@ class ReportDashboardService
             'method' => $method,
             'total' => (float) ($totals[$method] ?? 0),
         ]);
+    }
+
+    private function sales(Carbon $from, Carbon $to, int $limit = 50): Collection
+    {
+        return Sale::with('customer')
+            ->whereBetween('sale_date', [$from, $to])
+            ->where('status', 'completed')
+            ->latest('sale_date')
+            ->limit($limit)
+            ->get()
+            ->map(fn (Sale $sale) => [
+                'id' => $sale->id,
+                'invoice_number' => $sale->invoice_number,
+                'sale_date' => $sale->sale_date,
+                'customer_name' => $sale->customer->name ?? 'Walk-in',
+                'payment_type' => $sale->payment_type,
+                'payment_type_label' => $sale->paymentTypeLabel(),
+                'badge_classes' => $sale->paymentTypeBadgeClasses(),
+                'total_amount' => (float) $sale->total_amount,
+            ]);
     }
 
     private function topProducts(Carbon $from, Carbon $to, int $limit = 10): Collection

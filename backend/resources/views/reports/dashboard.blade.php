@@ -76,68 +76,37 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" x-data="{ salesAsTable: false, paymentAsTable: false }">
-                <div class="bg-surface border border-line shadow-sm rounded-lg p-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-semibold text-ink text-sm">Sales Trend</h3>
-                        <button type="button" @click="salesAsTable = !salesAsTable" class="text-xs text-accent hover:underline" x-text="salesAsTable ? 'View chart' : 'View as table'"></button>
-                    </div>
-                    <div x-show="!salesAsTable">
-                        <canvas id="sales-trend-chart" height="220"></canvas>
-                    </div>
-                    <div x-show="salesAsTable" style="display: none;" class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-line-soft">
-                                <tr class="text-left text-ink-soft">
-                                    <th class="px-3 py-2">Period</th>
-                                    <th class="px-3 py-2 text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse ($salesTrend as $row)
-                                    <tr class="border-t border-line">
-                                        <td class="px-3 py-2">{{ $row['label'] }}</td>
-                                        <td class="px-3 py-2 text-right font-medium">Rs. {{ number_format($row['total'], 2) }}</td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="2" class="px-3 py-6 text-center text-ink-soft">No sales in this range.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="bg-surface border border-line shadow-sm rounded-lg p-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-semibold text-ink text-sm">Payment Method Breakdown</h3>
-                        <button type="button" @click="paymentAsTable = !paymentAsTable" class="text-xs text-accent hover:underline" x-text="paymentAsTable ? 'View chart' : 'View as table'"></button>
-                    </div>
-                    <div x-show="!paymentAsTable">
-                        <canvas id="payment-breakdown-chart" height="220"></canvas>
-                    </div>
-                    <div x-show="paymentAsTable" style="display: none;" class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-line-soft">
-                                <tr class="text-left text-ink-soft">
-                                    <th class="px-3 py-2">Method</th>
-                                    <th class="px-3 py-2 text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($paymentBreakdown as $row)
-                                    <tr class="border-t border-line">
-                                        <td class="px-3 py-2">{{ \Illuminate\Support\Str::headline($row['method']) }}</td>
-                                        <td class="px-3 py-2 text-right font-medium">Rs. {{ number_format($row['total'], 2) }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="bg-surface border border-line shadow-sm rounded-lg overflow-hidden">
+                <h3 class="font-semibold text-ink text-sm px-4 pt-4">Sales</h3>
+                <table class="w-full text-sm mt-3">
+                    <thead class="bg-line-soft">
+                        <tr class="text-left text-ink-soft">
+                            <th class="px-4 py-3">Invoice</th>
+                            <th class="px-4 py-3">Date</th>
+                            <th class="px-4 py-3">Customer</th>
+                            <th class="px-4 py-3">Type</th>
+                            <th class="px-4 py-3 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($sales as $sale)
+                            <tr class="border-t border-line">
+                                <td class="px-4 py-3"><a href="{{ route('sales.show', $sale['id']) }}" class="text-accent hover:underline">{{ $sale['invoice_number'] }}</a></td>
+                                <td class="px-4 py-3 text-ink-soft">{{ $sale['sale_date']->format('Y-m-d H:i') }}</td>
+                                <td class="px-4 py-3">{{ $sale['customer_name'] }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-0.5 rounded text-xs {{ $sale['badge_classes'] }}">
+                                        {{ $sale['payment_type_label'] }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right font-medium">Rs. {{ number_format($sale['total_amount'], 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="px-4 py-8 text-center text-ink-soft">No sales in this range.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-
-            <script type="application/json" id="sales-trend-data">{!! $salesTrend->toJson() !!}</script>
-            <script type="application/json" id="payment-breakdown-data">{!! $paymentBreakdown->toJson() !!}</script>
 
             <div class="bg-surface border border-line shadow-sm rounded-lg overflow-hidden">
                 <h3 class="font-semibold text-ink text-sm px-4 pt-4">Top Selling Products</h3>

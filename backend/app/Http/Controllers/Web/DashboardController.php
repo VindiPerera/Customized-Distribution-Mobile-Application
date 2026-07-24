@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Services\ReportDashboardService;
 
 class DashboardController extends Controller
 {
-    public function __invoke()
+    public function __invoke(ReportDashboardService $reportDashboardService)
     {
         $today = now()->startOfDay();
 
@@ -36,6 +37,10 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        return view('dashboard', compact('stats', 'recentSales', 'lowStockProducts'));
+        $charts = $reportDashboardService->charts(now()->subDays(29)->startOfDay(), now()->endOfDay());
+        $salesTrend = $charts['salesTrend'];
+        $paymentBreakdown = $charts['paymentBreakdown'];
+
+        return view('dashboard', compact('stats', 'recentSales', 'lowStockProducts', 'salesTrend', 'paymentBreakdown'));
     }
 }

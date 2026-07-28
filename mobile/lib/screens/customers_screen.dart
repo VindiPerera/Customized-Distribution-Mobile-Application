@@ -4,7 +4,9 @@ import '../models/customer.dart';
 import '../providers/auth_provider.dart';
 import '../services/customer_service.dart';
 import '../theme.dart';
+import 'customer_detail_screen.dart';
 import 'new_customer_screen.dart';
+import 'new_sale_screen.dart';
 
 class CustomersScreen extends StatefulWidget {
   const CustomersScreen({super.key});
@@ -36,45 +38,26 @@ class _CustomersScreenState extends State<CustomersScreen> {
     if (created == true) _reload();
   }
 
-  Future<void> _showPaymentDialog(Customer customer) async {
-    final amountController = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Record payment', style: const TextStyle(fontSize: 17)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(customer.name, style: const TextStyle(color: AppColors.inkSoft, fontSize: 13)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: amountController,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                prefixText: 'Rs. ',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              final amount = double.tryParse(amountController.text);
-              if (amount == null || amount <= 0) return;
-              Navigator.pop(ctx);
-              await _customerService.recordPayment(customerId: customer.id, amount: amount);
-              _reload();
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+  Future<void> _openCustomerDetail(Customer customer) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CustomerDetailScreen(customer: customer)),
     );
+    _reload();
+  }
+
+  Future<void> _openSettleCredit(Customer customer) async {
+    if (customer.currentBalance <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This customer has no outstanding balance.')),
+      );
+      return;
+    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => NewSaleScreen(settlementCustomer: customer)),
+    );
+    _reload();
   }
 
   @override
@@ -116,7 +99,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 return Card(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: () => _showPaymentDialog(c),
+                    onTap: () => _openCustomerDetail(c),
                     child: Padding(
                       padding: const EdgeInsets.all(14),
                       child: Row(
@@ -152,20 +135,21 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               ],
                             ),
                           ),
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppColors.goodSoft,
-                              borderRadius: BorderRadius.circular(10),
+                          if (hasBalance)
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.goodSoft,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.payments_outlined, size: 19, color: AppColors.good),
+                                tooltip: 'Settle credit',
+                                onPressed: () => _openSettleCredit(c),
+                              ),
                             ),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(Icons.payments_outlined, size: 19, color: AppColors.good),
-                              tooltip: 'Record payment',
-                              onPressed: () => _showPaymentDialog(c),
-                            ),
-                          ),
                         ],
                       ),
                     ),

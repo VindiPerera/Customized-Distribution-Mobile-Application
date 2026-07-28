@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ isset($title) ? $title . ' · ' : '' }}{{ config('app.name') }}</title>
+        <title>{{ isset($title) ? $title . ' · ' : '' }}{{ $shopName ?? config('app.name') }}</title>
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -22,7 +22,7 @@
                         <path d="M4 8L12 4L20 8V16L12 20L4 16V8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                         <path d="M4 8L12 12M12 12L20 8M12 12V20" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                     </svg>
-                    <span class="font-display text-[1.05rem] font-semibold leading-tight text-white">{{ config('app.name') }}</span>
+                    <span class="font-display text-[1.05rem] font-semibold leading-tight text-white">{{ $shopName ?? config('app.name') }}</span>
                 </div>
 
                 <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
@@ -114,7 +114,7 @@
                     <button @click="mobileNavOpen = true" class="p-1.5 -ml-1.5 text-ink-soft">
                         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
-                    <span class="font-display font-semibold text-ink">{{ config('app.name') }}</span>
+                    <span class="font-display font-semibold text-ink">{{ $shopName ?? config('app.name') }}</span>
                 </div>
 
                 @isset($header)

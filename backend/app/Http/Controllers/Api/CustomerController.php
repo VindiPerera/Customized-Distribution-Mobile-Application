@@ -61,7 +61,7 @@ class CustomerController extends Controller
 
     public function ledger(Customer $customer)
     {
-        return $customer->ledgerEntries()->latest()->paginate(30);
+        return $customer->ledgerEntries()->with('reference')->latest()->paginate(30);
     }
 
     public function aging(Customer $customer)

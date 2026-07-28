@@ -1,4 +1,5 @@
 import '../models/customer.dart';
+import '../models/customer_ledger_entry.dart';
 import 'api_client.dart';
 
 class CustomerService {
@@ -39,5 +40,11 @@ class CustomerService {
       'method': method,
       'notes': notes,
     });
+  }
+
+  Future<List<CustomerLedgerEntry>> ledger(int customerId) async {
+    final data = await _api.get('/customers/$customerId/ledger');
+    final items = data['data'] as List;
+    return items.map((e) => CustomerLedgerEntry.fromJson(e)).toList();
   }
 }

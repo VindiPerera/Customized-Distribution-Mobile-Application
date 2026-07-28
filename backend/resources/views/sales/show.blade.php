@@ -12,7 +12,7 @@
 
                 <div class="flex justify-between items-start mb-6">
                     <div>
-                        <h1 class="text-lg font-bold text-ink">{{ config('app.name') }}</h1>
+                        <h1 class="text-lg font-bold text-ink">{{ $shopName ?? config('app.name') }}</h1>
                         <p class="text-sm text-ink-soft">Invoice #{{ $sale->invoice_number }}</p>
                         <p class="text-sm text-ink-soft">{{ $sale->sale_date->format('Y-m-d H:i') }}</p>
                     </div>

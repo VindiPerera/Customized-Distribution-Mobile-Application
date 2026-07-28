@@ -78,7 +78,7 @@ class CustomerController extends Controller
     {
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01'],
-            'method' => ['nullable', 'in:cash,bank_transfer,cheque,other'],
+            'method' => ['nullable', 'in:cash,card,bank_transfer,cheque,other'],
             'reference_no' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);

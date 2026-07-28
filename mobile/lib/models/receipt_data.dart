@@ -18,6 +18,8 @@ class ReceiptData {
   final String invoiceNumber;
   final DateTime date;
   final List<ReceiptLine> lines;
+  final double subtotal;
+  final double discount;
   final double total;
   final String paymentType;
   final String? customerName;
@@ -27,6 +29,8 @@ class ReceiptData {
     required this.invoiceNumber,
     required this.date,
     required this.lines,
+    required this.subtotal,
+    this.discount = 0,
     required this.total,
     required this.paymentType,
     this.customerName,
@@ -45,6 +49,8 @@ class ReceiptData {
                 lineTotal: i.lineTotal,
               ))
           .toList(),
+      subtotal: sale.subtotal,
+      discount: sale.discount,
       total: sale.totalAmount,
       paymentType: sale.paymentType,
       customerName: sale.customerName,

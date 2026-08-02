@@ -55,12 +55,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Center(child: ShopLogo(size: 64, borderRadius: 18)),
+                  const Center(child: ShopLogo(size: 112, borderRadius: 26)),
                   const SizedBox(height: 20),
                   const Text(
                     'Damsas Creation',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.ink),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.ink),
                   ),
                   const SizedBox(height: 6),
                   const Text(

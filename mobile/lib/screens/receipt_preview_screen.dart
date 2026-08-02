@@ -58,7 +58,10 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
       final selected = devices.length == 1
           ? devices.first
           : await _pickDevice(devices);
-      if (selected == null) return;
+      if (selected == null) {
+        setState(() => _error = 'No printer selected.');
+        return;
+      }
 
       final connected = await _printerService.connect(selected.address);
       if (!connected) {

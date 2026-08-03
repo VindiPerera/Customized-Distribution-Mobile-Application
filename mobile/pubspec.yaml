@@ -40,7 +40,6 @@ dependencies:
   shared_preferences: ^2.5.5
   print_bluetooth_thermal: ^1.2.0
   esc_pos_utils_plus: ^2.0.4
-  image: ^4.3.0
   permission_handler: ^11.3.1
 
 dev_dependencies:

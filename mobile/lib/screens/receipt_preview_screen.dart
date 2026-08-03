@@ -18,7 +18,6 @@ class ReceiptPreviewScreen extends StatefulWidget {
 }
 
 class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
-  final _boundaryKey = GlobalKey();
   final _printerService = BluetoothPrinterService();
   late final ShopSettingsService _settingsService;
 
@@ -75,7 +74,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
         return;
       }
 
-      final printed = await _printerService.printReceipt(_boundaryKey, paperSize: _shop!.paperSize);
+      final printed = await _printerService.printReceipt(widget.receipt, _shop!);
       if (mounted) {
         if (printed) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -134,10 +133,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
                           border: Border.all(color: AppColors.line),
                           boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
                         ),
-                        child: RepaintBoundary(
-                          key: _boundaryKey,
-                          child: ReceiptWidget(shop: _shop!, receipt: widget.receipt),
-                        ),
+                        child: ReceiptWidget(shop: _shop!, receipt: widget.receipt),
                       ),
                     ),
                   ),

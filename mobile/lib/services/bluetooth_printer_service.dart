@@ -1,26 +1,27 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
-import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import '../models/receipt_data.dart';
+import '../models/shop_settings.dart';
+
+const String _receiptWhatsapp = '072 665 0786';
+const String _receiptEmail = 'info.damsascreations@gmail.com';
+
+const Map<String, String> _paymentLabels = {
+  'cash': 'Cash',
+  'card': 'Card',
+  'credit': 'Credit',
+  'split': 'Split',
+  'bank_transfer': 'Bank Transfer',
+  'credit_settlement': 'Credit Settlement',
+};
 
 class PrinterDevice {
   final String name;
   final String address;
 
   PrinterDevice({required this.name, required this.address});
-}
-
-img.Image _padWidthToMultipleOf8(img.Image src) {
-  final targetWidth = (src.width + 7) ~/ 8 * 8;
-  if (targetWidth == src.width) return src;
-  final padded = img.Image(width: targetWidth, height: src.height, numChannels: src.numChannels);
-  img.fill(padded, color: img.ColorRgb8(255, 255, 255));
-  img.compositeImage(padded, src);
-  return padded;
 }
 
 class BluetoothPrinterService {
@@ -51,48 +52,15 @@ class BluetoothPrinterService {
 
   Future<void> disconnect() => PrintBluetoothThermal.disconnect;
 
-  /// Captures [boundaryKey]'s widget as a bitmap and prints it as an ESC/POS
-  /// raster image, so Sinhala Unicode text renders correctly regardless of
-  /// the printer's built-in font support.
-  Future<bool> printReceipt(GlobalKey boundaryKey, {String paperSize = 'mm58'}) async {
-    final boundary = boundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-    // pixelRatio must stay 1.0: ReceiptWidget's width (384/576) is chosen to
-    // map 1:1 to printer dots, and imageRaster() doesn't resize the bitmap,
-    // so any higher ratio sends a raster line wider than the paper's dot
-    // width and the printer silently drops it.
-    final ui.Image uiImage;
-    try {
-      uiImage = await boundary.toImage(pixelRatio: 1.0);
-    } catch (e, st) {
-      throw Exception('[stage:capture] $e\n$st');
-    }
-
-    final Uint8List pngBytes;
-    try {
-      final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
-      pngBytes = byteData!.buffer.asUint8List();
-    } catch (e, st) {
-      throw Exception('[stage:encodePng] $e\n$st');
-    }
-
-    late final img.Image decoded;
-    try {
-      final rawDecoded = img.decodePng(pngBytes)!;
-      // esc_pos_utils_plus 2.0.4's Generator._toRasterFormat crashes with
-      // "Cannot add to a fixed-length list" whenever the image width isn't a
-      // multiple of 8 (it rebuilds its byte buffer via List.filled, which is
-      // fixed-length, then calls insertAll on it). Pad to a multiple of 8
-      // ourselves so that buggy branch never runs.
-      decoded = _padWidthToMultipleOf8(rawDecoded);
-    } catch (e, st) {
-      throw Exception('[stage:decodePng] $e\n$st');
-    }
-
+  /// Prints the receipt using the printer's built-in font via native
+  /// ESC/POS text commands (English/Latin only - no font rendering, no
+  /// image raster, no printer-dot-width pitfalls).
+  Future<bool> printReceipt(ReceiptData receipt, ShopSettings shop) async {
     late final CapabilityProfile profile;
     late final Generator generator;
     try {
       profile = await CapabilityProfile.load();
-      generator = Generator(paperSize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58, profile);
+      generator = Generator(shop.paperSize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58, profile);
     } catch (e, st) {
       throw Exception('[stage:generatorInit] $e\n$st');
     }
@@ -100,25 +68,15 @@ class BluetoothPrinterService {
     final bytes = <int>[];
     try {
       bytes.addAll(generator.reset());
-    } catch (e, st) {
-      throw Exception('[stage:reset] $e\n$st');
-    }
-    try {
-      bytes.addAll(generator.imageRaster(decoded));
-    } catch (e, st) {
-      throw Exception(
-        '[stage:imageRaster w=${decoded.width} h=${decoded.height}] $e\n$st',
-      );
-    }
-    try {
+      bytes.addAll(_buildHeader(generator, shop));
+      bytes.addAll(_buildMeta(generator, receipt));
+      bytes.addAll(_buildItemsTable(generator, receipt));
+      bytes.addAll(_buildTotals(generator, receipt));
+      bytes.addAll(_buildFooter(generator, shop));
       bytes.addAll(generator.feed(2));
-    } catch (e, st) {
-      throw Exception('[stage:feed] $e\n$st');
-    }
-    try {
       bytes.addAll(generator.cut());
     } catch (e, st) {
-      throw Exception('[stage:cut] $e\n$st');
+      throw Exception('[stage:build] $e\n$st');
     }
 
     try {
@@ -126,5 +84,97 @@ class BluetoothPrinterService {
     } catch (e, st) {
       throw Exception('[stage:writeBytes] $e\n$st');
     }
+  }
+
+  List<int> _buildHeader(Generator generator, ShopSettings shop) {
+    final bytes = <int>[];
+    bytes.addAll(generator.text(
+      shop.name,
+      styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2),
+    ));
+    if (shop.address.isNotEmpty) {
+      bytes.addAll(generator.text(shop.address, styles: const PosStyles(align: PosAlign.center)));
+    }
+    if (shop.phone.isNotEmpty) {
+      bytes.addAll(generator.text(shop.phone, styles: const PosStyles(align: PosAlign.center)));
+    }
+    bytes.addAll(generator.text('WhatsApp: $_receiptWhatsapp', styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(generator.text(_receiptEmail, styles: const PosStyles(align: PosAlign.center)));
+    if (shop.taxId.isNotEmpty) {
+      bytes.addAll(generator.text(shop.taxId, styles: const PosStyles(align: PosAlign.center)));
+    }
+    bytes.addAll(generator.hr(linesAfter: 1));
+    return bytes;
+  }
+
+  List<int> _buildMeta(Generator generator, ReceiptData receipt) {
+    final bytes = <int>[];
+    final dateStr =
+        '${receipt.date.year}-${receipt.date.month.toString().padLeft(2, '0')}-${receipt.date.day.toString().padLeft(2, '0')}  '
+        '${receipt.date.hour.toString().padLeft(2, '0')}:${receipt.date.minute.toString().padLeft(2, '0')}';
+
+    bytes.addAll(_kv(generator, 'Invoice', receipt.invoiceNumber));
+    bytes.addAll(_kv(generator, 'Date', dateStr));
+    bytes.addAll(_kv(generator, 'Payment', _paymentLabel(receipt.paymentType)));
+    if (receipt.customerName != null) {
+      bytes.addAll(_kv(generator, 'Customer', receipt.customerName!));
+    }
+    bytes.addAll(_kv(generator, 'Cashier', receipt.cashierName));
+    bytes.addAll(generator.hr(linesAfter: 1));
+    return bytes;
+  }
+
+  List<int> _buildItemsTable(Generator generator, ReceiptData receipt) {
+    final bytes = <int>[];
+    bytes.addAll(generator.row([
+      PosColumn(text: 'Item', width: 6, styles: const PosStyles(bold: true)),
+      PosColumn(text: 'Qty', width: 2, styles: const PosStyles(align: PosAlign.right, bold: true)),
+      PosColumn(text: 'Amount', width: 4, styles: const PosStyles(align: PosAlign.right, bold: true)),
+    ]));
+    bytes.addAll(generator.hr(linesAfter: 1));
+
+    for (final line in receipt.lines) {
+      bytes.addAll(generator.text(line.name));
+      bytes.addAll(generator.row([
+        PosColumn(text: 'Rs. ${line.unitPrice.toStringAsFixed(2)} each', width: 6),
+        PosColumn(text: 'x${line.quantity}', width: 2, styles: const PosStyles(align: PosAlign.right)),
+        PosColumn(text: 'Rs. ${line.lineTotal.toStringAsFixed(2)}', width: 4, styles: const PosStyles(align: PosAlign.right)),
+      ]));
+    }
+    bytes.addAll(generator.hr(linesAfter: 1));
+    return bytes;
+  }
+
+  List<int> _buildTotals(Generator generator, ReceiptData receipt) {
+    final bytes = <int>[];
+    if (receipt.discount > 0) {
+      bytes.addAll(_kv(generator, 'Subtotal', 'Rs. ${receipt.subtotal.toStringAsFixed(2)}'));
+      bytes.addAll(_kv(generator, 'Discount', '- Rs. ${receipt.discount.toStringAsFixed(2)}'));
+    }
+    bytes.addAll(generator.row([
+      PosColumn(text: 'TOTAL', width: 6, styles: const PosStyles(bold: true, height: PosTextSize.size2)),
+      PosColumn(
+        text: 'Rs. ${receipt.total.toStringAsFixed(2)}',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.right, bold: true, height: PosTextSize.size2),
+      ),
+    ]));
+    return bytes;
+  }
+
+  List<int> _buildFooter(Generator generator, ShopSettings shop) {
+    if (shop.footerNote.isEmpty) return const [];
+    return generator.text(shop.footerNote, styles: const PosStyles(align: PosAlign.center), linesAfter: 1);
+  }
+
+  List<int> _kv(Generator generator, String label, String value) {
+    return generator.row([
+      PosColumn(text: label, width: 5),
+      PosColumn(text: value, width: 7, styles: const PosStyles(align: PosAlign.right)),
+    ]);
+  }
+
+  String _paymentLabel(String type) {
+    return _paymentLabels[type] ?? (type.isEmpty ? type : type[0].toUpperCase() + type.substring(1));
   }
 }

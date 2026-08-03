@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
@@ -44,7 +43,17 @@ class BluetoothPrinterService {
     return results.map((d) => PrinterDevice(name: d.name, address: d.macAdress)).toList();
   }
 
-  Future<bool> connect(String address) {
+  /// The native Android side of print_bluetooth_thermal keeps its
+  /// BluetoothSocket output stream in a top-level variable that persists
+  /// across connect() calls: if a previous session left it non-null (e.g.
+  /// the app was killed mid-print, or a prior connect/write failed), every
+  /// later connect() call is a no-op that returns false and never opens a
+  /// fresh socket - because the plugin's "else" branch that's supposed to
+  /// clear it (`outputStream == null`) is a no-op comparison, not an
+  /// assignment. Forcing a disconnect() first guarantees that stale state
+  /// is actually cleared before we ask for a new connection.
+  Future<bool> connect(String address) async {
+    await PrintBluetoothThermal.disconnect;
     return PrintBluetoothThermal.connect(macPrinterAddress: address);
   }
 
@@ -80,8 +89,20 @@ class BluetoothPrinterService {
     }
 
     try {
-      return await PrintBluetoothThermal.writeBytes(Uint8List.fromList(bytes));
+      // Must stay a plain List<int>: the plugin's Android side casts the
+      // platform channel argument directly to java.util.List, so passing a
+      // Uint8List (which crosses as a Java byte[]) throws a
+      // ClassCastException on the native side. That exception is swallowed
+      // by the method channel error handler and surfaces to Dart as a plain
+      // "false" return - looks identical to a real write failure.
+      final ok = await PrintBluetoothThermal.writeBytes(bytes);
+      if (!ok) {
+        final stillConnected = await PrintBluetoothThermal.connectionStatus;
+        throw Exception('[stage:writeBytes] writeBytes returned false (connectionStatus=$stillConnected)');
+      }
+      return ok;
     } catch (e, st) {
+      if (e is Exception && e.toString().contains('[stage:writeBytes]')) rethrow;
       throw Exception('[stage:writeBytes] $e\n$st');
     }
   }

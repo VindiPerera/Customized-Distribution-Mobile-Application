@@ -34,7 +34,11 @@ class BluetoothPrinterService {
   /// the printer's built-in font support.
   Future<bool> printReceipt(GlobalKey boundaryKey, {String paperSize = 'mm58'}) async {
     final boundary = boundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-    final uiImage = await boundary.toImage(pixelRatio: 2.0);
+    // pixelRatio must stay 1.0: ReceiptWidget's width (384/576) is chosen to
+    // map 1:1 to printer dots, and imageRaster() doesn't resize the bitmap,
+    // so any higher ratio sends a raster line wider than the paper's dot
+    // width and the printer silently drops it.
+    final uiImage = await boundary.toImage(pixelRatio: 1.0);
     final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
     final pngBytes = byteData!.buffer.asUint8List();
 

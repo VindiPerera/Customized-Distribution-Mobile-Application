@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/thejan/flutter/**)",
+      "Read(//home/thejan/development/flutter/**)",
+      "Bash(find / -maxdepth 4 -iname \"flutter\" -type d)",
+      "Read(//home/thejan/**)",
+      "Bash(snap list *)"
+    ]
+  }
+}

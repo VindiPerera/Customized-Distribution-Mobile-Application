@@ -85,7 +85,8 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
           setState(() => _error = 'Printing failed. Check the printer and try again.');
         }
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Printing failed: $e\n$st');
       setState(() => _error = 'Printing failed: $e');
     } finally {
       if (mounted) setState(() => _isPrinting = false);

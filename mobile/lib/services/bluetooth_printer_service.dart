@@ -51,20 +51,63 @@ class BluetoothPrinterService {
     // map 1:1 to printer dots, and imageRaster() doesn't resize the bitmap,
     // so any higher ratio sends a raster line wider than the paper's dot
     // width and the printer silently drops it.
-    final uiImage = await boundary.toImage(pixelRatio: 1.0);
-    final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
-    final pngBytes = byteData!.buffer.asUint8List();
+    final ui.Image uiImage;
+    try {
+      uiImage = await boundary.toImage(pixelRatio: 1.0);
+    } catch (e, st) {
+      throw Exception('[stage:capture] $e\n$st');
+    }
 
-    final decoded = img.decodePng(pngBytes)!;
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(paperSize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58, profile);
+    final Uint8List pngBytes;
+    try {
+      final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
+      pngBytes = byteData!.buffer.asUint8List();
+    } catch (e, st) {
+      throw Exception('[stage:encodePng] $e\n$st');
+    }
+
+    late final img.Image decoded;
+    try {
+      decoded = img.decodePng(pngBytes)!;
+    } catch (e, st) {
+      throw Exception('[stage:decodePng] $e\n$st');
+    }
+
+    late final CapabilityProfile profile;
+    late final Generator generator;
+    try {
+      profile = await CapabilityProfile.load();
+      generator = Generator(paperSize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58, profile);
+    } catch (e, st) {
+      throw Exception('[stage:generatorInit] $e\n$st');
+    }
 
     final bytes = <int>[];
-    bytes.addAll(generator.reset());
-    bytes.addAll(generator.imageRaster(decoded));
-    bytes.addAll(generator.feed(2));
-    bytes.addAll(generator.cut());
+    try {
+      bytes.addAll(generator.reset());
+    } catch (e, st) {
+      throw Exception('[stage:reset] $e\n$st');
+    }
+    try {
+      bytes.addAll(generator.imageRaster(decoded));
+    } catch (e, st) {
+      throw Exception('[stage:imageRaster] $e\n$st');
+    }
+    try {
+      bytes.addAll(generator.feed(2));
+    } catch (e, st) {
+      throw Exception('[stage:feed] $e\n$st');
+    }
+    try {
+      bytes.addAll(generator.cut());
+    } catch (e, st) {
+      throw Exception('[stage:cut] $e\n$st');
+    }
 
-    return PrintBluetoothThermal.writeBytes(Uint8List.fromList(bytes));
+    try {
+      return await PrintBluetoothThermal.writeBytes(Uint8List.fromList(bytes));
+    } catch (e, st) {
+      throw Exception('[stage:writeBytes] $e\n$st');
+    }
   }
 }

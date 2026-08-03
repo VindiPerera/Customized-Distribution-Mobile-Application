@@ -1,8 +1,11 @@
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import '../models/receipt_data.dart';
 import '../models/shop_settings.dart';
+import 'api_client.dart';
 
 const String _receiptWhatsapp = '072 665 0786';
 const String _receiptEmail = 'info.damsascreations@gmail.com';
@@ -77,6 +80,7 @@ class BluetoothPrinterService {
     final bytes = <int>[];
     try {
       bytes.addAll(generator.reset());
+      bytes.addAll(await _buildLogo(generator));
       bytes.addAll(_buildHeader(generator, shop));
       bytes.addAll(_buildMeta(generator, receipt));
       bytes.addAll(_buildItemsTable(generator, receipt));
@@ -104,6 +108,28 @@ class BluetoothPrinterService {
     } catch (e, st) {
       if (e is Exception && e.toString().contains('[stage:writeBytes]')) rethrow;
       throw Exception('[stage:writeBytes] $e\n$st');
+    }
+  }
+
+  /// Fetches and rasters the shop logo above the text header. Best-effort:
+  /// any failure (network, decode) just skips the logo rather than failing
+  /// the whole receipt print, since the logo isn't essential information.
+  Future<List<int>> _buildLogo(Generator generator) async {
+    try {
+      final response = await http.get(Uri.parse(ApiClient.logoUrl)).timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) return const [];
+
+      final decoded = img.decodeImage(response.bodyBytes);
+      if (decoded == null) return const [];
+
+      final resized = img.copyResize(decoded, width: 200);
+
+      final bytes = <int>[];
+      bytes.addAll(generator.imageRaster(resized, align: PosAlign.center));
+      bytes.addAll(generator.feed(1));
+      return bytes;
+    } catch (_) {
+      return const [];
     }
   }
 

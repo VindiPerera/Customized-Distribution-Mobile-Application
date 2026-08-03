@@ -14,6 +14,15 @@ class PrinterDevice {
   PrinterDevice({required this.name, required this.address});
 }
 
+img.Image _padWidthToMultipleOf8(img.Image src) {
+  final targetWidth = (src.width + 7) ~/ 8 * 8;
+  if (targetWidth == src.width) return src;
+  final padded = img.Image(width: targetWidth, height: src.height, numChannels: src.numChannels);
+  img.fill(padded, color: img.ColorRgb8(255, 255, 255));
+  img.compositeImage(padded, src);
+  return padded;
+}
+
 class BluetoothPrinterService {
   /// Android 12+ (API 31+) treats BLUETOOTH_CONNECT/SCAN as runtime
   /// permissions: declaring them in the manifest alone does nothing, they
@@ -68,7 +77,13 @@ class BluetoothPrinterService {
 
     late final img.Image decoded;
     try {
-      decoded = img.decodePng(pngBytes)!;
+      final rawDecoded = img.decodePng(pngBytes)!;
+      // esc_pos_utils_plus 2.0.4's Generator._toRasterFormat crashes with
+      // "Cannot add to a fixed-length list" whenever the image width isn't a
+      // multiple of 8 (it rebuilds its byte buffer via List.filled, which is
+      // fixed-length, then calls insertAll on it). Pad to a multiple of 8
+      // ourselves so that buggy branch never runs.
+      decoded = _padWidthToMultipleOf8(rawDecoded);
     } catch (e, st) {
       throw Exception('[stage:decodePng] $e\n$st');
     }
@@ -91,7 +106,9 @@ class BluetoothPrinterService {
     try {
       bytes.addAll(generator.imageRaster(decoded));
     } catch (e, st) {
-      throw Exception('[stage:imageRaster] $e\n$st');
+      throw Exception(
+        '[stage:imageRaster w=${decoded.width} h=${decoded.height}] $e\n$st',
+      );
     }
     try {
       bytes.addAll(generator.feed(2));

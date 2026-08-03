@@ -4,6 +4,7 @@ import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:image/image.dart' as img;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 class PrinterDevice {
@@ -14,6 +15,18 @@ class PrinterDevice {
 }
 
 class BluetoothPrinterService {
+  /// Android 12+ (API 31+) treats BLUETOOTH_CONNECT/SCAN as runtime
+  /// permissions: declaring them in the manifest alone does nothing, they
+  /// must be explicitly granted or every connect/write call silently fails
+  /// even though the printer shows up as paired at the OS level.
+  Future<bool> requestPermissions() async {
+    final statuses = await [
+      Permission.bluetoothConnect,
+      Permission.bluetoothScan,
+    ].request();
+    return statuses.values.every((s) => s.isGranted);
+  }
+
   Future<bool> isBluetoothEnabled() => PrintBluetoothThermal.bluetoothEnabled;
 
   Future<List<PrinterDevice>> listPairedDevices() async {

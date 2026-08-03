@@ -43,6 +43,12 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
     });
 
     try {
+      final permitted = await _printerService.requestPermissions();
+      if (!permitted) {
+        setState(() => _error = 'Bluetooth permission is required to print. Grant it in app settings.');
+        return;
+      }
+
       final enabled = await _printerService.isBluetoothEnabled();
       if (!enabled) {
         setState(() => _error = 'Turn on Bluetooth to print.');

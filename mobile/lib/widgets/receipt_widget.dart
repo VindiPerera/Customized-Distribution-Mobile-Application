@@ -62,6 +62,12 @@ const Map<String, Map<String, String>> _receiptStrings = {
 /// printer firmware has no Sinhala font.
 class ReceiptWidget extends StatelessWidget {
   static const double _width58mm = 384;
+  // 576 dots (72mm at 203dpi) is the Xprinter P801A's actual printhead
+  // width even on 80mm paper stock - the spec sheet lists a 72mm print
+  // width on 80mm paper, so a small margin on each side is a physical
+  // property of the printer, not a bug. Sending anything wider than 576
+  // exceeds the printhead and gets clamped/distorted by the printer instead
+  // of actually using more of the paper.
   static const double _width80mm = 576;
 
   final ShopSettings shop;
@@ -75,14 +81,25 @@ class ReceiptWidget extends StatelessWidget {
 
   /// 80mm paper has more room, so labels scale up a bit rather than just
   /// leaving extra whitespace on wider stock.
-  double get _scale => shop.paperSize == 'mm80' ? 1.2 : 1.0;
+  double get _scale => shop.paperSize == 'mm80' ? 2.0 : 1.15;
+
+  /// Fixed (not scaled) horizontal padding: scaling padding along with text
+  /// eats into the width gain from a bigger _scale, leaving the printed
+  /// content looking small relative to the paper even though nothing is
+  /// clipped.
+  double get _hPadding => 10;
 
   Map<String, String> get _t => _receiptStrings[shop.receiptLanguage] ?? _receiptStrings['en']!;
 
+  /// Bold by default: thermal printing (especially via image raster for
+  /// Sinhala) washes out thin/regular-weight strokes, so everything needs
+  /// to be at least semi-bold to stay legible on paper even though it looks
+  /// heavier than necessary on screen.
   TextStyle get _mono => TextStyle(
         fontFamily: 'NotoSansSinhala',
         color: Colors.black,
         fontSize: 15 * _scale,
+        fontWeight: FontWeight.w600,
         height: 1.3,
       );
 
@@ -95,15 +112,15 @@ class ReceiptWidget extends StatelessWidget {
     return Container(
       width: _widthPx,
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: 14 * _scale, vertical: 14 * _scale),
+      padding: EdgeInsets.symmetric(horizontal: _hPadding, vertical: 14 * _scale),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
             child: Image.network(
               ApiClient.logoUrl,
-              width: 56 * _scale,
-              height: 56 * _scale,
+              width: 64 * _scale,
+              height: 64 * _scale,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
             ),
@@ -112,7 +129,7 @@ class ReceiptWidget extends StatelessWidget {
           Text(
             shop.name,
             textAlign: TextAlign.center,
-            style: mono.copyWith(fontSize: 20 * _scale, fontWeight: FontWeight.w700),
+            style: mono.copyWith(fontSize: 22 * _scale, fontWeight: FontWeight.w900),
           ),
           if (shop.address.isNotEmpty) ...[
             SizedBox(height: 2 * _scale),
@@ -143,9 +160,24 @@ class ReceiptWidget extends StatelessWidget {
           SizedBox(height: 6 * _scale),
           Row(
             children: [
-              Expanded(flex: 5, child: Text(t['item']!, style: mono.copyWith(fontWeight: FontWeight.w700))),
-              Expanded(flex: 2, child: Text(t['qty']!, textAlign: TextAlign.right, style: mono.copyWith(fontWeight: FontWeight.w700))),
-              Expanded(flex: 3, child: Text(t['amount']!, textAlign: TextAlign.right, style: mono.copyWith(fontWeight: FontWeight.w700))),
+              Expanded(
+                flex: 4,
+                child: Text(t['item']!, style: mono.copyWith(fontWeight: FontWeight.w900), softWrap: false, overflow: TextOverflow.visible),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  t['qty']!,
+                  textAlign: TextAlign.right,
+                  style: mono.copyWith(fontWeight: FontWeight.w900),
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(t['amount']!, textAlign: TextAlign.right, style: mono.copyWith(fontWeight: FontWeight.w900), softWrap: false),
+              ),
             ],
           ),
           SizedBox(height: 4 * _scale),
@@ -165,11 +197,11 @@ class ReceiptWidget extends StatelessWidget {
           ],
           Row(
             children: [
-              Text(t['total']!, style: mono.copyWith(fontSize: 18 * _scale, fontWeight: FontWeight.w700)),
+              Text(t['total']!, style: mono.copyWith(fontSize: 20 * _scale, fontWeight: FontWeight.w900)),
               const Spacer(),
               Text(
                 'Rs. ${receipt.total.toStringAsFixed(2)}',
-                style: mono.copyWith(fontSize: 18 * _scale, fontWeight: FontWeight.w700),
+                style: mono.copyWith(fontSize: 20 * _scale, fontWeight: FontWeight.w900),
               ),
             ],
           ),
@@ -192,10 +224,10 @@ class ReceiptWidget extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 2 * _scale),
       child: Row(
         children: [
-          Text('$label:', style: mono.copyWith(fontSize: 13 * _scale, color: Colors.black87)),
+          Text('$label:', style: mono.copyWith(fontSize: 14 * _scale)),
           SizedBox(width: 6 * _scale),
           Expanded(
-            child: Text(value, style: mono.copyWith(fontSize: 13 * _scale), textAlign: TextAlign.right),
+            child: Text(value, style: mono.copyWith(fontSize: 14 * _scale), textAlign: TextAlign.right),
           ),
         ],
       ),
@@ -216,26 +248,26 @@ class _ReceiptLineRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(line.name, style: mono.copyWith(fontSize: 14 * scale)),
+        Text(line.name, style: mono.copyWith(fontSize: 15 * scale, fontWeight: FontWeight.w700)),
         Row(
           children: [
             Expanded(
-              flex: 5,
+              flex: 4,
               child: Text(
                 'Rs. ${line.unitPrice.toStringAsFixed(2)} $eachLabel',
-                style: mono.copyWith(fontSize: 12.5 * scale, color: Colors.black54),
+                style: mono.copyWith(fontSize: 13.5 * scale),
               ),
             ),
             Expanded(
-              flex: 2,
-              child: Text('x${line.quantity}', textAlign: TextAlign.right, style: mono.copyWith(fontSize: 13 * scale)),
+              flex: 3,
+              child: Text('x${line.quantity}', textAlign: TextAlign.right, style: mono.copyWith(fontSize: 14 * scale)),
             ),
             Expanded(
               flex: 3,
               child: Text(
                 'Rs. ${line.lineTotal.toStringAsFixed(2)}',
                 textAlign: TextAlign.right,
-                style: mono.copyWith(fontSize: 13 * scale, fontWeight: FontWeight.w600),
+                style: mono.copyWith(fontSize: 14 * scale, fontWeight: FontWeight.w800),
               ),
             ),
           ],

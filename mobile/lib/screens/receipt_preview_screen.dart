@@ -18,6 +18,7 @@ class ReceiptPreviewScreen extends StatefulWidget {
 }
 
 class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
+  final _boundaryKey = GlobalKey();
   final _printerService = BluetoothPrinterService();
   late final ShopSettingsService _settingsService;
 
@@ -74,7 +75,13 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
         return;
       }
 
-      final printed = await _printerService.printReceipt(widget.receipt, _shop!);
+      // Thermal printer firmware has no Sinhala font, so native ESC/POS text
+      // commands can't render it - fall back to printing a bitmap of the
+      // same widget shown in the preview above, which already renders
+      // Sinhala correctly via NotoSansSinhala.
+      final printed = _shop!.receiptLanguage == 'si'
+          ? await _printerService.printReceiptImage(_boundaryKey, paperSize: _shop!.paperSize)
+          : await _printerService.printReceipt(widget.receipt, _shop!);
       if (mounted) {
         if (printed) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -119,7 +126,9 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Receipt')),
+      appBar: AppBar(
+        title: Text(_shop == null ? 'Receipt' : 'Receipt (paperSize: ${_shop!.paperSize})'),
+      ),
       body: _shop == null
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -133,7 +142,10 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
                           border: Border.all(color: AppColors.line),
                           boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
                         ),
-                        child: ReceiptWidget(shop: _shop!, receipt: widget.receipt),
+                        child: RepaintBoundary(
+                          key: _boundaryKey,
+                          child: ReceiptWidget(shop: _shop!, receipt: widget.receipt),
+                        ),
                       ),
                     ),
                   ),

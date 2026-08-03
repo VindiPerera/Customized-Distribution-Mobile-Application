@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
@@ -92,13 +96,73 @@ class BluetoothPrinterService {
       throw Exception('[stage:build] $e\n$st');
     }
 
+    return _write(bytes);
+  }
+
+  /// Captures [boundaryKey]'s widget as a bitmap and prints it as a single
+  /// ESC/POS raster image. Used for Sinhala receipts, since thermal printer
+  /// firmware has no Sinhala font and native ESC/POS text commands can only
+  /// render the printer's built-in (Latin/CP437) character set.
+  Future<bool> printReceiptImage(GlobalKey boundaryKey, {String paperSize = 'mm58'}) async {
+    late final Uint8List pngBytes;
     try {
-      // Must stay a plain List<int>: the plugin's Android side casts the
-      // platform channel argument directly to java.util.List, so passing a
-      // Uint8List (which crosses as a Java byte[]) throws a
-      // ClassCastException on the native side. That exception is swallowed
-      // by the method channel error handler and surfaces to Dart as a plain
-      // "false" return - looks identical to a real write failure.
+      // pixelRatio must stay 1.0: ReceiptWidget is already sized to the
+      // printer's real dot width (384px for 58mm / 576px for 80mm paper at
+      // 203dpi). Capturing at a higher ratio produces a wider bitmap than
+      // the printhead, which imageRaster prints at full width - only the
+      // left portion fits and the rest is clipped off the paper's edge.
+      final boundary = boundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final uiImage = await boundary.toImage(pixelRatio: 1.0);
+      final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
+      pngBytes = byteData!.buffer.asUint8List();
+    } catch (e, st) {
+      throw Exception('[stage:capture] $e\n$st');
+    }
+
+    late final List<int> bytes;
+    try {
+      final decoded = img.decodePng(pngBytes)!;
+      // esc_pos_utils_plus 2.0.4's Generator._toRasterFormat pads non-multiple
+      // -of-8 widths by inserting into a List.filled (fixed-length) list,
+      // which throws "Cannot add to a fixed-length list". Padding the width
+      // to a multiple of 8 ourselves beforehand avoids that code path
+      // entirely, since a captured widget's pixel width is essentially never
+      // already a multiple of 8.
+      final paddedWidth = (decoded.width + 7) & ~7;
+      final image = paddedWidth == decoded.width
+          ? decoded
+          : img.copyExpandCanvas(
+              decoded,
+              newWidth: paddedWidth,
+              newHeight: decoded.height,
+              position: img.ExpandCanvasPosition.topLeft,
+              backgroundColor: img.ColorRgb8(255, 255, 255),
+            );
+
+      final profile = await CapabilityProfile.load();
+      final generator = Generator(paperSize == 'mm80' ? PaperSize.mm80 : PaperSize.mm58, profile);
+
+      bytes = <int>[
+        ...generator.reset(),
+        ...generator.imageRaster(image),
+        ...generator.feed(2),
+        ...generator.cut(),
+      ];
+    } catch (e, st) {
+      throw Exception('[stage:build] $e\n$st');
+    }
+
+    return _write(bytes);
+  }
+
+  /// Must stay a plain `List<int>`: the plugin's Android side casts the
+  /// platform channel argument directly to java.util.List, so passing a
+  /// Uint8List (which crosses as a Java byte[]) throws a
+  /// ClassCastException on the native side. That exception is swallowed by
+  /// the method channel error handler and surfaces to Dart as a plain
+  /// "false" return - looks identical to a real write failure.
+  Future<bool> _write(List<int> bytes) async {
+    try {
       final ok = await PrintBluetoothThermal.writeBytes(bytes);
       if (!ok) {
         final stillConnected = await PrintBluetoothThermal.connectionStatus;

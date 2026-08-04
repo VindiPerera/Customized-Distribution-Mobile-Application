@@ -19,7 +19,6 @@ class Product extends Model
         'unit',
         'cost_price',
         'selling_price',
-        'discount',
         'stock_quantity',
         'low_stock_alert',
         'expiry_date',
@@ -34,7 +33,6 @@ class Product extends Model
         return [
             'cost_price' => 'decimal:2',
             'selling_price' => 'decimal:2',
-            'discount' => 'decimal:2',
             'expiry_date' => 'date',
             'is_active' => 'boolean',
         ];

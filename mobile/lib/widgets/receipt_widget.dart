@@ -10,6 +10,10 @@ import '../services/api_client.dart';
 const String _receiptWhatsapp = '072 665 0786';
 const String _receiptEmail = 'info.damsascreations@gmail.com';
 
+/// Printed on every receipt regardless of shop settings — this app is built
+/// and distributed by JAAN Network, not something the admin can turn off.
+const String _poweredBy = 'Powered by JAAN Network (PVT) Ltd';
+
 /// Labels for the receipt's fixed chrome text (everything that isn't shop
 /// or sale data), keyed by [ShopSettings.receiptLanguage].
 const Map<String, Map<String, String>> _receiptStrings = {
@@ -18,19 +22,15 @@ const Map<String, Map<String, String>> _receiptStrings = {
     'date': 'Date',
     'payment': 'Payment',
     'customer': 'Customer',
+    'phone': 'Phone',
     'cashier': 'Cashier',
-    'item': 'Item',
+    'product': 'Product',
+    'price': 'Price',
     'qty': 'Qty',
-    'amount': 'Amount',
-    'each': 'each',
-    'subtotal': 'Subtotal',
-    'discount': 'Discount',
+    'amount': 'Total',
     'total': 'TOTAL',
     'cash': 'Cash',
-    'card': 'Card',
     'credit': 'Credit',
-    'split': 'Split',
-    'bank_transfer': 'Bank Transfer',
     'credit_settlement': 'Credit Settlement',
   },
   'si': {
@@ -38,19 +38,15 @@ const Map<String, Map<String, String>> _receiptStrings = {
     'date': 'දිනය',
     'payment': 'ගෙවීම',
     'customer': 'පාරිභෝගිකයා',
+    'phone': 'දුරකථනය',
     'cashier': 'කැෂියර්',
-    'item': 'භාණ්ඩය',
+    'product': 'භාණ්ඩය',
+    'price': 'මිල',
     'qty': 'ප්‍රමාණය',
-    'amount': 'මුදල',
-    'each': 'බැගින්',
-    'subtotal': 'උප එකතුව',
-    'discount': 'වට්ටම',
+    'amount': 'එකතුව',
     'total': 'එකතුව',
     'cash': 'මුදල්',
-    'card': 'කාඩ්පත',
     'credit': 'ණය',
-    'split': 'බෙදුම',
-    'bank_transfer': 'බැංකු මාරුව',
     'credit_settlement': 'ණය පියවීම',
   },
 };
@@ -139,6 +135,10 @@ class ReceiptWidget extends StatelessWidget {
             SizedBox(height: 2 * _scale),
             Text(shop.phone, textAlign: TextAlign.center, style: mono.copyWith(fontSize: 13 * _scale)),
           ],
+          if (shop.companyPhone.isNotEmpty) ...[
+            SizedBox(height: 2 * _scale),
+            Text(shop.companyPhone, textAlign: TextAlign.center, style: mono.copyWith(fontSize: 13 * _scale)),
+          ],
           SizedBox(height: 2 * _scale),
           Text('WhatsApp: $_receiptWhatsapp', textAlign: TextAlign.center, style: mono.copyWith(fontSize: 13 * _scale)),
           SizedBox(height: 2 * _scale),
@@ -154,6 +154,7 @@ class ReceiptWidget extends StatelessWidget {
           _kv(t['date']!, dateFmt.format(receipt.date)),
           _kv(t['payment']!, _paymentLabel(receipt.paymentType)),
           if (receipt.customerName != null) _kv(t['customer']!, receipt.customerName!),
+          if (receipt.customerPhone != null) _kv(t['phone']!, receipt.customerPhone!),
           _kv(t['cashier']!, receipt.cashierName),
           SizedBox(height: 6 * _scale),
           const _DashedDivider(),
@@ -162,10 +163,14 @@ class ReceiptWidget extends StatelessWidget {
             children: [
               Expanded(
                 flex: 4,
-                child: Text(t['item']!, style: mono.copyWith(fontWeight: FontWeight.w900), softWrap: false, overflow: TextOverflow.visible),
+                child: Text(t['product']!, style: mono.copyWith(fontWeight: FontWeight.w900), softWrap: false, overflow: TextOverflow.visible),
               ),
               Expanded(
                 flex: 3,
+                child: Text(t['price']!, textAlign: TextAlign.right, style: mono.copyWith(fontWeight: FontWeight.w900), softWrap: false),
+              ),
+              Expanded(
+                flex: 2,
                 child: Text(
                   t['qty']!,
                   textAlign: TextAlign.right,
@@ -184,17 +189,12 @@ class ReceiptWidget extends StatelessWidget {
           const _DashedDivider(),
           SizedBox(height: 6 * _scale),
           for (final line in receipt.lines) ...[
-            _ReceiptLineRow(line: line, mono: mono, eachLabel: t['each']!, scale: _scale),
+            _ReceiptLineRow(line: line, mono: mono, scale: _scale),
             SizedBox(height: 4 * _scale),
           ],
           SizedBox(height: 4 * _scale),
           const _DashedDivider(),
           SizedBox(height: 8 * _scale),
-          if (receipt.discount > 0) ...[
-            _kv(t['subtotal']!, 'Rs. ${receipt.subtotal.toStringAsFixed(2)}'),
-            _kv(t['discount']!, '- Rs. ${receipt.discount.toStringAsFixed(2)}'),
-            SizedBox(height: 4 * _scale),
-          ],
           Row(
             children: [
               Text(t['total']!, style: mono.copyWith(fontSize: 20 * _scale, fontWeight: FontWeight.w900)),
@@ -207,7 +207,11 @@ class ReceiptWidget extends StatelessWidget {
           ),
           SizedBox(height: 14 * _scale),
           if (shop.footerNote.isNotEmpty)
-            Text(shop.footerNote, textAlign: TextAlign.center, style: mono.copyWith(fontSize: 13 * _scale)),
+            // Bumped up from the body text size (13) so the thank-you
+            // message stands out at the bottom of the receipt.
+            Text(shop.footerNote, textAlign: TextAlign.center, style: mono.copyWith(fontSize: 17 * _scale, fontWeight: FontWeight.w800)),
+          SizedBox(height: 8 * _scale),
+          Text(_poweredBy, textAlign: TextAlign.center, style: mono.copyWith(fontSize: 11 * _scale, fontWeight: FontWeight.w500)),
           SizedBox(height: 4 * _scale),
         ],
       ),
@@ -238,10 +242,9 @@ class ReceiptWidget extends StatelessWidget {
 class _ReceiptLineRow extends StatelessWidget {
   final ReceiptLine line;
   final TextStyle mono;
-  final String eachLabel;
   final double scale;
 
-  const _ReceiptLineRow({required this.line, required this.mono, required this.eachLabel, required this.scale});
+  const _ReceiptLineRow({required this.line, required this.mono, required this.scale});
 
   @override
   Widget build(BuildContext context) {
@@ -253,13 +256,18 @@ class _ReceiptLineRow extends StatelessWidget {
           children: [
             Expanded(
               flex: 4,
+              child: SizedBox.shrink(),
+            ),
+            Expanded(
+              flex: 3,
               child: Text(
-                'Rs. ${line.unitPrice.toStringAsFixed(2)} $eachLabel',
+                'Rs. ${line.discountedPrice.toStringAsFixed(2)}',
+                textAlign: TextAlign.right,
                 style: mono.copyWith(fontSize: 13.5 * scale),
               ),
             ),
             Expanded(
-              flex: 3,
+              flex: 2,
               child: Text('x${line.quantity}', textAlign: TextAlign.right, style: mono.copyWith(fontSize: 14 * scale)),
             ),
             Expanded(

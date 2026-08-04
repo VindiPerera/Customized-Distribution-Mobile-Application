@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Exceptions\InvalidSplitPaymentException;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Product;
@@ -38,25 +37,18 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'customer_id' => ['nullable', 'required_if:payment_type,credit', 'exists:customers,id'],
-            'payment_type' => ['required', 'in:cash,card,bank_transfer,credit,split'],
-            'discount' => ['nullable', 'numeric', 'min:0'],
+            'customer_id' => ['required', 'exists:customers,id'],
+            'payment_type' => ['required', 'in:cash,credit'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'payments' => ['required_if:payment_type,split', 'array', 'min:2'],
-            'payments.*.method' => ['required_with:payments', 'in:cash,card,bank_transfer'],
-            'payments.*.amount' => ['required_with:payments', 'numeric', 'min:0.01'],
+            'items.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $data['user_id'] = $request->user()->id;
 
-        try {
-            $sale = $this->saleService->createSale($data, $data['items']);
-        } catch (InvalidSplitPaymentException $e) {
-            return back()->withErrors(['payments' => $e->getMessage()])->withInput();
-        }
+        $sale = $this->saleService->createSale($data, $data['items']);
 
         return redirect()->route('sales.show', $sale)->with('status', 'Sale recorded.');
     }

@@ -31,6 +31,17 @@
                 </div>
 
                 <div>
+                    <x-input-label for="customer_category_id" value="Category" />
+                    <select id="customer_category_id" name="customer_category_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent">
+                        <option value="">No category</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}" {{ (string) old('customer_category_id', $customer->customer_category_id) === (string) $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('customer_category_id')" class="mt-1" />
+                </div>
+
+                <div>
                     <x-input-label for="credit_limit" value="Credit Limit (Rs.)" required />
                     <x-text-input id="credit_limit" type="number" step="0.01" min="0" name="credit_limit" value="{{ old('credit_limit', $customer->credit_limit) }}" class="mt-1 block w-full" required />
                     <x-input-error :messages="$errors->get('credit_limit')" class="mt-1" />

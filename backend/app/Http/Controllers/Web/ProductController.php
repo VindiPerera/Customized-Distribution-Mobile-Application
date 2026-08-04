@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -39,21 +40,22 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
+            'sku' => ['nullable', 'string', 'max:100', 'unique:products,sku'],
             'item_code' => ['nullable', 'string', 'max:100'],
             'barcode' => ['nullable', 'string', 'max:100'],
             'category_id' => ['required', 'exists:categories,id'],
-            'supplier_id' => ['required', 'exists:suppliers,id'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
             'name' => ['required', 'string', 'max:255'],
             'unit' => ['nullable', 'string', 'max:50'],
-            'cost_price' => ['nullable', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
-            'discount' => ['nullable', 'numeric', 'min:0'],
             'stock_quantity' => ['required', 'integer', 'min:0'],
             'low_stock_alert' => ['nullable', 'integer', 'min:0'],
             'expiry_date' => ['nullable', 'date'],
             'image' => ['nullable', 'image', 'max:4096'],
         ]);
+
+        $data['sku'] = $data['sku'] ?: $this->generateSku();
+        $data['supplier_id'] = $data['supplier_id'] ?: $this->unspecifiedSupplierId();
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
@@ -86,16 +88,14 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $data = $request->validate([
-            'sku' => ['required', 'string', 'max:100', 'unique:products,sku,' . $product->id],
+            'sku' => ['nullable', 'string', 'max:100', 'unique:products,sku,' . $product->id],
             'item_code' => ['nullable', 'string', 'max:100'],
             'barcode' => ['nullable', 'string', 'max:100'],
             'category_id' => ['required', 'exists:categories,id'],
-            'supplier_id' => ['required', 'exists:suppliers,id'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
             'name' => ['required', 'string', 'max:255'],
             'unit' => ['nullable', 'string', 'max:50'],
-            'cost_price' => ['nullable', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
-            'discount' => ['nullable', 'numeric', 'min:0'],
             'low_stock_alert' => ['nullable', 'integer', 'min:0'],
             'expiry_date' => ['nullable', 'date'],
             'is_active' => ['sometimes', 'boolean'],
@@ -103,6 +103,8 @@ class ProductController extends Controller
             'remove_image' => ['sometimes', 'boolean'],
         ]);
         $data['is_active'] = $request->boolean('is_active');
+        $data['sku'] = $data['sku'] ?: $this->generateSku();
+        $data['supplier_id'] = $data['supplier_id'] ?: $this->unspecifiedSupplierId();
 
         if ($request->hasFile('image')) {
             if ($product->image_path) {
@@ -133,5 +135,30 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->route('products.index')->with('status', 'Product removed.');
+    }
+
+    /**
+     * SKU is optional on the form but must exist and be unique in the
+     * database — generate one when the admin doesn't provide it.
+     */
+    private function generateSku(): string
+    {
+        do {
+            $sku = 'SKU-' . strtoupper(Str::random(8));
+        } while (Product::where('sku', $sku)->exists());
+
+        return $sku;
+    }
+
+    /**
+     * Supplier is optional on the form — fall back to the same
+     * "Unspecified" supplier used to backfill pre-existing products.
+     */
+    private function unspecifiedSupplierId(): int
+    {
+        return Supplier::firstOrCreate(
+            ['name' => 'Unspecified'],
+            ['is_active' => true],
+        )->id;
     }
 }

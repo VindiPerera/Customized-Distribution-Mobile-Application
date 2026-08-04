@@ -14,7 +14,6 @@ class Sale extends Model
         'user_id',
         'payment_type',
         'subtotal',
-        'discount',
         'total_amount',
         'paid_amount',
         'status',
@@ -26,7 +25,6 @@ class Sale extends Model
     {
         return [
             'subtotal' => 'decimal:2',
-            'discount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'sale_date' => 'datetime',
@@ -60,6 +58,8 @@ class Sale extends Model
 
     public function paymentTypeLabel(): string
     {
+        // 'bank_transfer'/'split' can still appear on sales recorded before
+        // POS billing was restricted to Cash/Credit only.
         return match ($this->payment_type) {
             'bank_transfer' => 'Bank Transfer',
             default => ucfirst($this->payment_type),

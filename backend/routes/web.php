@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Web\CategoryController;
+use App\Http\Controllers\Web\CustomerCategoryController;
 use App\Http\Controllers\Web\CustomerController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ProductController;
@@ -30,6 +31,7 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('customers', CustomerController::class);
     Route::post('customers/{customer}/payments', [CustomerController::class, 'storePayment'])->name('customers.payments.store');
+    Route::resource('customer-categories', CustomerCategoryController::class)->except(['show']);
 
     Route::resource('products', ProductController::class)->except(['show']);
 

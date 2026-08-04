@@ -2,24 +2,28 @@
 
 namespace App\Services;
 
-use App\Exceptions\InvalidSplitPaymentException;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class SaleService
 {
-    public function __construct(private CreditService $creditService)
-    {
+    public function __construct(
+        private CreditService $creditService,
+        private InvoiceNumberService $invoiceNumbers,
+    ) {
     }
 
     /**
      * Create a sale (cash or credit) with its line items, deduct stock,
-     * and — for credit sales — post the debt to the customer's ledger.
+     * and — for credit sales, or a cash sale that wasn't paid in full —
+     * post the outstanding amount to the customer's ledger.
      *
-     * $items: array of ['product_id' => int, 'quantity' => int]
+     * A customer is always required: bills are always issued to a named
+     * customer, never anonymously.
+     *
+     * $items: array of ['product_id' => int, 'quantity' => int, 'discount_percent' => float|null]
      */
     public function createSale(array $data, array $items): Sale
     {
@@ -34,55 +38,53 @@ class SaleService
                     throw new \RuntimeException("Insufficient stock for product: {$product->name}");
                 }
 
-                $lineTotal = $product->selling_price * $item['quantity'];
+                $discountPercent = min(max((float) ($item['discount_percent'] ?? 0), 0), 100);
+                $discountedPrice = round($product->selling_price * (1 - $discountPercent / 100), 2);
+                $lineTotal = $discountedPrice * $item['quantity'];
                 $subtotal += $lineTotal;
 
                 $lineItems[] = [
                     'product' => $product,
                     'quantity' => $item['quantity'],
                     'unit_price' => $product->selling_price,
+                    'discount_percent' => $discountPercent,
+                    'discounted_price' => $discountedPrice,
                     'line_total' => $lineTotal,
                 ];
             }
 
-            $discount = $data['discount'] ?? 0;
-            $totalAmount = $subtotal - $discount;
+            $totalAmount = $subtotal;
             $paymentType = $data['payment_type'];
 
-            if ($paymentType === 'split') {
-                $paymentsSum = array_sum(array_column($data['payments'], 'amount'));
-                if (abs($paymentsSum - $totalAmount) > 0.01) {
-                    throw new InvalidSplitPaymentException($paymentsSum, $totalAmount);
-                }
-            }
+            // Credit sales are paid 0 up front. Cash sales are normally paid
+            // in full, but the cashier may report a partial "paid_amount"
+            // (the customer only handed over part of the total); anything
+            // not explicitly reported is assumed paid in full.
+            $paidAmount = $paymentType === 'credit'
+                ? 0
+                : (float) ($data['paid_amount'] ?? $totalAmount);
+            $paidAmount = min(max($paidAmount, 0), $totalAmount);
+            $balanceDue = round($totalAmount - $paidAmount, 2);
 
             $sale = Sale::create([
-                'invoice_number' => 'INV-' . strtoupper(Str::random(8)),
-                'customer_id' => $data['customer_id'] ?? null,
+                'invoice_number' => $this->invoiceNumbers->next(),
+                'customer_id' => $data['customer_id'],
                 'user_id' => $data['user_id'],
                 'payment_type' => $paymentType,
                 'subtotal' => $subtotal,
-                'discount' => $discount,
                 'total_amount' => $totalAmount,
-                'paid_amount' => $paymentType === 'credit' ? 0 : $totalAmount,
+                'paid_amount' => $paidAmount,
                 'sale_date' => now(),
                 'notes' => $data['notes'] ?? null,
             ]);
-
-            if ($paymentType === 'split') {
-                foreach ($data['payments'] as $payment) {
-                    $sale->payments()->create([
-                        'method' => $payment['method'],
-                        'amount' => $payment['amount'],
-                    ]);
-                }
-            }
 
             foreach ($lineItems as $line) {
                 $sale->items()->create([
                     'product_id' => $line['product']->id,
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
+                    'discount_percent' => $line['discount_percent'],
+                    'discounted_price' => $line['discounted_price'],
                     'line_total' => $line['line_total'],
                 ]);
 
@@ -100,12 +102,12 @@ class SaleService
                 $line['product']->update(['stock_quantity' => $newStock]);
             }
 
-            if ($paymentType === 'credit') {
+            if ($balanceDue > 0) {
                 $customer = Customer::findOrFail($data['customer_id']);
-                $this->creditService->recordSaleOnCredit($customer, $sale);
+                $this->creditService->recordSaleOnCredit($customer, $sale, $balanceDue);
             }
 
-            return $sale->load('items.product', 'customer', 'payments');
+            return $sale->load('items.product', 'customer');
         });
     }
 }

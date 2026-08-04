@@ -19,6 +19,12 @@
             <form method="GET" class="flex gap-2">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name..."
                        class="border-line rounded-md shadow-sm text-sm w-64 focus:border-accent focus:ring-accent">
+                <select name="category_id" onchange="this.form.submit()" class="border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent">
+                    <option value="">All categories</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" {{ (string) request('category_id') === (string) $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                    @endforeach
+                </select>
                 <button class="px-3 py-1.5 bg-line-soft text-ink text-sm rounded-md hover:bg-line">Search</button>
             </form>
 
@@ -28,6 +34,7 @@
                         <tr class="text-left text-ink-soft">
                             <th class="px-4 py-3">Name</th>
                             <th class="px-4 py-3">Phone</th>
+                            <th class="px-4 py-3">Category</th>
                             <th class="px-4 py-3 text-right">Balance</th>
                             <th class="px-4 py-3"></th>
                         </tr>
@@ -37,6 +44,7 @@
                             <tr class="border-t border-line">
                                 <td class="px-4 py-3 font-medium text-ink">{{ $customer->name }}</td>
                                 <td class="px-4 py-3 text-ink-soft">{{ $customer->phone ?? '—' }}</td>
+                                <td class="px-4 py-3 text-ink-soft">{{ $customer->category->name ?? '—' }}</td>
                                 <td class="px-4 py-3 text-right {{ $customer->current_balance > 0 ? 'text-warn font-semibold' : '' }}">
                                     Rs. {{ number_format($customer->current_balance, 2) }}
                                 </td>
@@ -50,7 +58,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-4 py-8 text-center text-ink-soft">No customers found.</td></tr>
+                            <tr><td colspan="6" class="px-4 py-8 text-center text-ink-soft">No customers found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

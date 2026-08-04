@@ -35,6 +35,12 @@
                 </div>
 
                 <div>
+                    <x-input-label for="company_phone" value="Company Phone Number" />
+                    <x-text-input id="company_phone" name="company_phone" value="{{ old('company_phone', $settings->company_phone) }}" class="mt-1 block w-full" placeholder="Printed on every receipt" />
+                    <x-input-error :messages="$errors->get('company_phone')" class="mt-1" />
+                </div>
+
+                <div>
                     <x-input-label for="tax_id" value="Tax / TIN Number" />
                     <x-text-input id="tax_id" name="tax_id" value="{{ old('tax_id', $settings->tax_id) }}" class="mt-1 block w-full" />
                     <x-input-error :messages="$errors->get('tax_id')" class="mt-1" />

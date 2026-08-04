@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CustomerCategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
@@ -22,6 +23,8 @@ Route::name('api.')->group(function () {
         Route::apiResource('customers', CustomerController::class);
         Route::get('customers/{customer}/ledger', [CustomerController::class, 'ledger']);
         Route::get('customers/{customer}/aging', [CustomerController::class, 'aging']);
+
+        Route::get('customer-categories', [CustomerCategoryController::class, 'index']);
 
         Route::apiResource('products', ProductController::class);
 

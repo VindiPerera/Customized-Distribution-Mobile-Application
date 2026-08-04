@@ -4,12 +4,14 @@ class ReceiptLine {
   final String name;
   final int quantity;
   final double unitPrice;
+  final double discountedPrice;
   final double lineTotal;
 
   ReceiptLine({
     required this.name,
     required this.quantity,
     required this.unitPrice,
+    required this.discountedPrice,
     required this.lineTotal,
   });
 }
@@ -19,10 +21,10 @@ class ReceiptData {
   final DateTime date;
   final List<ReceiptLine> lines;
   final double subtotal;
-  final double discount;
   final double total;
   final String paymentType;
   final String? customerName;
+  final String? customerPhone;
   final String cashierName;
 
   ReceiptData({
@@ -30,10 +32,10 @@ class ReceiptData {
     required this.date,
     required this.lines,
     required this.subtotal,
-    this.discount = 0,
     required this.total,
     required this.paymentType,
     this.customerName,
+    this.customerPhone,
     required this.cashierName,
   });
 
@@ -46,14 +48,15 @@ class ReceiptData {
                 name: i.productName,
                 quantity: i.quantity,
                 unitPrice: i.unitPrice,
+                discountedPrice: i.discountedPrice,
                 lineTotal: i.lineTotal,
               ))
           .toList(),
       subtotal: sale.subtotal,
-      discount: sale.discount,
       total: sale.totalAmount,
       paymentType: sale.paymentType,
       customerName: sale.customerName,
+      customerPhone: sale.customerPhone,
       cashierName: sale.cashierName,
     );
   }

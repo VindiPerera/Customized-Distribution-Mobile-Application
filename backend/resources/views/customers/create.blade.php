@@ -32,6 +32,17 @@
                     <x-input-error :messages="$errors->get('address')" class="mt-1" />
                 </div>
 
+                <div>
+                    <x-input-label for="customer_category_id" value="Category" />
+                    <select id="customer_category_id" name="customer_category_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent">
+                        <option value="">No category</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}" {{ (string) old('customer_category_id') === (string) $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('customer_category_id')" class="mt-1" />
+                </div>
+
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('customers.index') }}" class="px-4 py-2 text-sm text-ink-soft">Cancel</a>
                     <x-primary-button>Create Customer</x-primary-button>

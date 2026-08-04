@@ -14,12 +14,13 @@ import 'api_client.dart';
 const String _receiptWhatsapp = '072 665 0786';
 const String _receiptEmail = 'info.damsascreations@gmail.com';
 
+/// Printed on every receipt regardless of shop settings — this app is built
+/// and distributed by JAAN Network, not something the admin can turn off.
+const String _poweredBy = 'Powered by JAAN Network (PVT) Ltd';
+
 const Map<String, String> _paymentLabels = {
   'cash': 'Cash',
-  'card': 'Card',
   'credit': 'Credit',
-  'split': 'Split',
-  'bank_transfer': 'Bank Transfer',
   'credit_settlement': 'Credit Settlement',
 };
 
@@ -209,6 +210,9 @@ class BluetoothPrinterService {
     if (shop.phone.isNotEmpty) {
       bytes.addAll(generator.text(shop.phone, styles: const PosStyles(align: PosAlign.center)));
     }
+    if (shop.companyPhone.isNotEmpty) {
+      bytes.addAll(generator.text(shop.companyPhone, styles: const PosStyles(align: PosAlign.center)));
+    }
     bytes.addAll(generator.text('WhatsApp: $_receiptWhatsapp', styles: const PosStyles(align: PosAlign.center)));
     bytes.addAll(generator.text(_receiptEmail, styles: const PosStyles(align: PosAlign.center)));
     if (shop.taxId.isNotEmpty) {
@@ -230,6 +234,9 @@ class BluetoothPrinterService {
     if (receipt.customerName != null) {
       bytes.addAll(_kv(generator, 'Customer', receipt.customerName!));
     }
+    if (receipt.customerPhone != null) {
+      bytes.addAll(_kv(generator, 'Phone', receipt.customerPhone!));
+    }
     bytes.addAll(_kv(generator, 'Cashier', receipt.cashierName));
     bytes.addAll(generator.hr(linesAfter: 1));
     return bytes;
@@ -238,18 +245,20 @@ class BluetoothPrinterService {
   List<int> _buildItemsTable(Generator generator, ReceiptData receipt) {
     final bytes = <int>[];
     bytes.addAll(generator.row([
-      PosColumn(text: 'Item', width: 6, styles: const PosStyles(bold: true)),
+      PosColumn(text: 'Product', width: 5, styles: const PosStyles(bold: true)),
+      PosColumn(text: 'Price', width: 3, styles: const PosStyles(align: PosAlign.right, bold: true)),
       PosColumn(text: 'Qty', width: 2, styles: const PosStyles(align: PosAlign.right, bold: true)),
-      PosColumn(text: 'Amount', width: 4, styles: const PosStyles(align: PosAlign.right, bold: true)),
+      PosColumn(text: 'Total', width: 2, styles: const PosStyles(align: PosAlign.right, bold: true)),
     ]));
     bytes.addAll(generator.hr(linesAfter: 1));
 
     for (final line in receipt.lines) {
       bytes.addAll(generator.text(line.name));
       bytes.addAll(generator.row([
-        PosColumn(text: 'Rs. ${line.unitPrice.toStringAsFixed(2)} each', width: 6),
+        PosColumn(text: '', width: 5),
+        PosColumn(text: 'Rs. ${line.discountedPrice.toStringAsFixed(2)}', width: 3, styles: const PosStyles(align: PosAlign.right)),
         PosColumn(text: 'x${line.quantity}', width: 2, styles: const PosStyles(align: PosAlign.right)),
-        PosColumn(text: 'Rs. ${line.lineTotal.toStringAsFixed(2)}', width: 4, styles: const PosStyles(align: PosAlign.right)),
+        PosColumn(text: 'Rs. ${line.lineTotal.toStringAsFixed(2)}', width: 2, styles: const PosStyles(align: PosAlign.right)),
       ]));
     }
     bytes.addAll(generator.hr(linesAfter: 1));
@@ -257,25 +266,29 @@ class BluetoothPrinterService {
   }
 
   List<int> _buildTotals(Generator generator, ReceiptData receipt) {
-    final bytes = <int>[];
-    if (receipt.discount > 0) {
-      bytes.addAll(_kv(generator, 'Subtotal', 'Rs. ${receipt.subtotal.toStringAsFixed(2)}'));
-      bytes.addAll(_kv(generator, 'Discount', '- Rs. ${receipt.discount.toStringAsFixed(2)}'));
-    }
-    bytes.addAll(generator.row([
+    return generator.row([
       PosColumn(text: 'TOTAL', width: 6, styles: const PosStyles(bold: true, height: PosTextSize.size2)),
       PosColumn(
         text: 'Rs. ${receipt.total.toStringAsFixed(2)}',
         width: 6,
         styles: const PosStyles(align: PosAlign.right, bold: true, height: PosTextSize.size2),
       ),
-    ]));
-    return bytes;
+    ]);
   }
 
   List<int> _buildFooter(Generator generator, ShopSettings shop) {
-    if (shop.footerNote.isEmpty) return const [];
-    return generator.text(shop.footerNote, styles: const PosStyles(align: PosAlign.center), linesAfter: 1);
+    final bytes = <int>[];
+    if (shop.footerNote.isNotEmpty) {
+      // Printed larger (size2) so the thank-you message stands out at the
+      // bottom of the receipt.
+      bytes.addAll(generator.text(
+        shop.footerNote,
+        styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2),
+        linesAfter: 1,
+      ));
+    }
+    bytes.addAll(generator.text(_poweredBy, styles: const PosStyles(align: PosAlign.center), linesAfter: 1));
+    return bytes;
   }
 
   List<int> _kv(Generator generator, String label, String value) {

@@ -17,10 +17,7 @@
                 <select name="payment_type" class="border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent" onchange="this.form.submit()">
                     <option value="">All types</option>
                     <option value="cash" {{ request('payment_type') === 'cash' ? 'selected' : '' }}>Cash</option>
-                    <option value="card" {{ request('payment_type') === 'card' ? 'selected' : '' }}>Card</option>
-                    <option value="bank_transfer" {{ request('payment_type') === 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
                     <option value="credit" {{ request('payment_type') === 'credit' ? 'selected' : '' }}>Credit</option>
-                    <option value="split" {{ request('payment_type') === 'split' ? 'selected' : '' }}>Split</option>
                 </select>
             </form>
 

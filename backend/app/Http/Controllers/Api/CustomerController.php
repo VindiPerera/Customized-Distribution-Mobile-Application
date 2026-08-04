@@ -13,9 +13,12 @@ class CustomerController extends Controller
     {
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return Customer::orderBy('name')->paginate(20);
+        return Customer::with('category')
+            ->when($request->category_id, fn ($q) => $q->where('customer_category_id', $request->category_id))
+            ->orderBy('name')
+            ->paginate(20);
     }
 
     public function store(Request $request)
@@ -25,15 +28,16 @@ class CustomerController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email'],
             'address' => ['nullable', 'string'],
+            'customer_category_id' => ['nullable', 'exists:customer_categories,id'],
             'credit_limit' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        return response()->json(Customer::create($data), 201);
+        return response()->json(Customer::create($data)->load('category'), 201);
     }
 
     public function show(Customer $customer)
     {
-        return $customer;
+        return $customer->load('category');
     }
 
     public function update(Request $request, Customer $customer)
@@ -43,13 +47,14 @@ class CustomerController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email'],
             'address' => ['nullable', 'string'],
+            'customer_category_id' => ['nullable', 'exists:customer_categories,id'],
             'credit_limit' => ['sometimes', 'numeric', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
         $customer->update($data);
 
-        return $customer;
+        return $customer->load('category');
     }
 
     public function destroy(Customer $customer)

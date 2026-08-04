@@ -8,18 +8,16 @@ class SaleService {
   SaleService(this._api);
 
   Future<Map<String, dynamic>> createSale({
-    int? customerId,
+    required int customerId,
     required String paymentType,
     required List<SaleItemInput> items,
-    double discount = 0,
-    List<SalePaymentInput>? payments,
+    double? paidAmount,
   }) async {
     return await _api.post('/sales', {
       'customer_id': customerId,
       'payment_type': paymentType,
-      'discount': discount,
+      if (paidAmount != null) 'paid_amount': paidAmount,
       'items': items.map((e) => e.toJson()).toList(),
-      if (payments != null) 'payments': payments.map((e) => e.toJson()).toList(),
     });
   }
 

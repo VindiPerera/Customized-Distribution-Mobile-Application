@@ -2,6 +2,7 @@ class ShopSettings {
   final String name;
   final String address;
   final String phone;
+  final String companyPhone;
   final String taxId;
   final String footerNote;
   final String paperSize;
@@ -11,6 +12,7 @@ class ShopSettings {
     required this.name,
     required this.address,
     required this.phone,
+    required this.companyPhone,
     required this.taxId,
     required this.footerNote,
     required this.paperSize,
@@ -21,6 +23,7 @@ class ShopSettings {
     name: 'Your Shop',
     address: '',
     phone: '',
+    companyPhone: '',
     taxId: '',
     footerNote: 'Thank you! Come again.',
     paperSize: 'mm58',
@@ -32,6 +35,7 @@ class ShopSettings {
       name: (json['name'] as String?)?.isNotEmpty == true ? json['name'] : fallback.name,
       address: json['address'] ?? '',
       phone: json['phone'] ?? '',
+      companyPhone: json['company_phone'] ?? '',
       taxId: json['tax_id'] ?? '',
       footerNote: json['footer_note'] ?? '',
       paperSize: (json['paper_size'] as String?)?.isNotEmpty == true ? json['paper_size'] : fallback.paperSize,

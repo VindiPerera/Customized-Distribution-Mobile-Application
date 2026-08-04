@@ -12,6 +12,8 @@ class SaleItem extends Model
         'product_id',
         'quantity',
         'unit_price',
+        'discount_percent',
+        'discounted_price',
         'line_total',
     ];
 
@@ -19,6 +21,8 @@ class SaleItem extends Model
     {
         return [
             'unit_price' => 'decimal:2',
+            'discount_percent' => 'decimal:2',
+            'discounted_price' => 'decimal:2',
             'line_total' => 'decimal:2',
         ];
     }

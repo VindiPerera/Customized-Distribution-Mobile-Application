@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\CustomerCategory;
 use App\Services\CreditService;
 use Illuminate\Http\Request;
 
@@ -16,17 +17,23 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $customers = Customer::query()
+            ->with('category')
             ->when($request->search, fn ($q) => $q->where('name', 'like', "%{$request->search}%"))
+            ->when($request->category_id, fn ($q) => $q->where('customer_category_id', $request->category_id))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
-        return view('customers.index', compact('customers'));
+        $categories = CustomerCategory::where('is_active', true)->orderBy('name')->get();
+
+        return view('customers.index', compact('customers', 'categories'));
     }
 
     public function create()
     {
-        return view('customers.create');
+        $categories = CustomerCategory::where('is_active', true)->orderBy('name')->get();
+
+        return view('customers.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -36,6 +43,7 @@ class CustomerController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email'],
             'address' => ['nullable', 'string'],
+            'customer_category_id' => ['nullable', 'exists:customer_categories,id'],
             'credit_limit' => ['nullable', 'numeric', 'min:0'],
         ]);
 
@@ -54,7 +62,9 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer)
     {
-        return view('customers.edit', compact('customer'));
+        $categories = CustomerCategory::where('is_active', true)->orderBy('name')->get();
+
+        return view('customers.edit', compact('customer', 'categories'));
     }
 
     public function update(Request $request, Customer $customer)
@@ -64,6 +74,7 @@ class CustomerController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email'],
             'address' => ['nullable', 'string'],
+            'customer_category_id' => ['nullable', 'exists:customer_categories,id'],
             'credit_limit' => ['required', 'numeric', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ]);

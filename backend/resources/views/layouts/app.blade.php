@@ -31,6 +31,7 @@
                             ['route' => 'dashboard', 'active' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'grid'],
                             ['route' => 'sales.index', 'active' => 'sales.*', 'label' => 'Sales', 'icon' => 'receipt'],
                             ['route' => 'customers.index', 'active' => 'customers.*', 'label' => 'Customers', 'icon' => 'users'],
+                            ['route' => 'customer-categories.index', 'active' => 'customer-categories.*', 'label' => 'Customer Categories', 'icon' => 'tag'],
                             ['route' => 'products.index', 'active' => 'products.*', 'label' => 'Products', 'icon' => 'box'],
                             ['route' => 'stock-adjustments.index', 'active' => 'stock-adjustments.*', 'label' => 'Stock Adjustments', 'icon' => 'chart'],
                             ['route' => 'stock-transactions.index', 'active' => 'stock-transactions.*', 'label' => 'Stock Transactions', 'icon' => 'receipt'],

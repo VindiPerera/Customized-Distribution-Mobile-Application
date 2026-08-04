@@ -1,4 +1,5 @@
 import '../models/customer.dart';
+import '../models/customer_category.dart';
 import '../models/customer_ledger_entry.dart';
 import 'api_client.dart';
 
@@ -7,22 +8,30 @@ class CustomerService {
 
   CustomerService(this._api);
 
-  Future<List<Customer>> list() async {
-    final data = await _api.get('/customers');
+  Future<List<Customer>> list({int? categoryId}) async {
+    final data = await _api.get('/customers', query: categoryId != null ? {'category_id': '$categoryId'} : null);
     final items = data['data'] as List;
     return items.map((e) => Customer.fromJson(e)).toList();
+  }
+
+  Future<List<CustomerCategory>> categories() async {
+    final data = await _api.get('/customer-categories');
+    final items = data as List;
+    return items.map((e) => CustomerCategory.fromJson(e)).toList();
   }
 
   Future<Customer> create({
     required String name,
     String? phone,
-    String? email,
+    String? address,
+    int? categoryId,
     double creditLimit = 0,
   }) async {
     final data = await _api.post('/customers', {
       'name': name,
       'phone': phone,
-      'email': email,
+      'address': address,
+      'customer_category_id': categoryId,
       'credit_limit': creditLimit,
     });
     return Customer.fromJson(data);

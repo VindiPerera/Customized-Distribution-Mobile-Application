@@ -45,8 +45,9 @@ class ApiClient {
     return headers;
   }
 
-  Future<dynamic> get(String path) async {
-    final res = await http.get(Uri.parse('$baseUrl$path'), headers: await _headers());
+  Future<dynamic> get(String path, {Map<String, String>? query}) async {
+    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);
+    final res = await http.get(uri, headers: await _headers());
     return _handle(res);
   }
 

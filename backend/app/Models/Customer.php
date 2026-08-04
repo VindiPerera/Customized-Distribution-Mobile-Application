@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Customer extends Model
@@ -12,6 +13,7 @@ class Customer extends Model
         'phone',
         'email',
         'address',
+        'customer_category_id',
         'credit_limit',
         'current_balance',
         'is_active',
@@ -24,6 +26,11 @@ class Customer extends Model
             'current_balance' => 'decimal:2',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CustomerCategory::class, 'customer_category_id');
     }
 
     public function sales(): HasMany

@@ -1,24 +1,14 @@
 class SaleItemInput {
   final int productId;
   final int quantity;
+  final double discountPercent;
 
-  SaleItemInput({required this.productId, required this.quantity});
+  SaleItemInput({required this.productId, required this.quantity, this.discountPercent = 0});
 
   Map<String, dynamic> toJson() => {
         'product_id': productId,
         'quantity': quantity,
-      };
-}
-
-class SalePaymentInput {
-  final String method;
-  final double amount;
-
-  SalePaymentInput({required this.method, required this.amount});
-
-  Map<String, dynamic> toJson() => {
-        'method': method,
-        'amount': amount,
+        'discount_percent': discountPercent,
       };
 }
 
@@ -29,6 +19,7 @@ class Sale {
   final double totalAmount;
   final DateTime saleDate;
   final String? customerName;
+  final String? customerPhone;
 
   Sale({
     required this.id,
@@ -37,6 +28,7 @@ class Sale {
     required this.totalAmount,
     required this.saleDate,
     this.customerName,
+    this.customerPhone,
   });
 
   factory Sale.fromJson(Map<String, dynamic> json) {
@@ -47,6 +39,7 @@ class Sale {
       totalAmount: double.parse(json['total_amount'].toString()),
       saleDate: DateTime.parse(json['sale_date']),
       customerName: json['customer'] != null ? json['customer']['name'] : null,
+      customerPhone: json['customer'] != null ? json['customer']['phone'] : null,
     );
   }
 }

@@ -21,6 +21,7 @@ class ShopSettingController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
             'phone' => ['nullable', 'string', 'max:50'],
+            'company_phone' => ['nullable', 'string', 'max:50'],
             'tax_id' => ['nullable', 'string', 'max:100'],
             'footer_note' => ['nullable', 'string', 'max:255'],
             'paper_size' => ['required', 'in:mm58,mm80'],

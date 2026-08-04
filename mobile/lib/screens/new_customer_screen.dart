@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/customer_category.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../services/customer_service.dart';
@@ -16,9 +17,11 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _addressController = TextEditingController();
 
   late final CustomerService _customerService;
+  List<CustomerCategory> _categories = [];
+  CustomerCategory? _selectedCategory;
   bool _isSubmitting = false;
   String? _error;
 
@@ -26,13 +29,23 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
   void initState() {
     super.initState();
     _customerService = CustomerService(context.read<AuthProvider>().api);
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _customerService.categories();
+      if (mounted) setState(() => _categories = categories);
+    } catch (_) {
+      // Categories are optional on this form — silently skip if unavailable.
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _emailController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
@@ -48,7 +61,8 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
       await _customerService.create(
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
-        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+        address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+        categoryId: _selectedCategory?.id,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -96,17 +110,28 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
               ),
               const SizedBox(height: 14),
               TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
+                controller: _addressController,
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: 2,
                 decoration: const InputDecoration(
-                  labelText: 'Email (optional)',
-                  prefixIcon: Icon(Icons.mail_outline_rounded, size: 20),
+                  labelText: 'Address (optional)',
+                  prefixIcon: Icon(Icons.location_on_outlined, size: 20),
                 ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return null;
-                  return v.contains('@') ? null : 'Enter a valid email';
-                },
               ),
+              if (_categories.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                DropdownButtonFormField<CustomerCategory>(
+                  initialValue: _selectedCategory,
+                  decoration: const InputDecoration(
+                    labelText: 'Category (optional)',
+                    prefixIcon: Icon(Icons.sell_outlined, size: 20),
+                  ),
+                  items: _categories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
+                      .toList(),
+                  onChanged: (c) => setState(() => _selectedCategory = c),
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Container(

@@ -10,6 +10,7 @@ class ShopSetting extends Model
         'name',
         'address',
         'phone',
+        'company_phone',
         'tax_id',
         'footer_note',
         'paper_size',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/customer.dart';
+import '../models/customer_category.dart';
 import '../models/product.dart';
 import '../models/receipt_data.dart';
 import '../models/sale.dart';
@@ -16,39 +17,38 @@ class _CartLine {
   final Product product;
   int quantity;
 
-  _CartLine(this.product, this.quantity);
+  /// Per-line percentage discount (0-100), entered at billing time.
+  final TextEditingController discountController;
 
-  double get lineTotal => product.sellingPrice * quantity;
-}
+  _CartLine(this.product, this.quantity, {double discountPercent = 0})
+      : discountController = TextEditingController(
+          text: discountPercent > 0 ? _trimZeros(discountPercent) : '',
+        );
 
-class _SplitLine {
-  String method;
-  final TextEditingController amountController;
+  static String _trimZeros(double v) {
+    final s = v.toStringAsFixed(2);
+    return s.replaceFirst(RegExp(r'\.?0+$'), '');
+  }
 
-  _SplitLine({required this.method, String initialAmount = ''})
-      : amountController = TextEditingController(text: initialAmount);
+  double get discountPercent {
+    final raw = double.tryParse(discountController.text) ?? 0;
+    return raw < 0 ? 0 : (raw > 100 ? 100 : raw);
+  }
 
-  double get amount => double.tryParse(amountController.text) ?? 0;
+  double get discountedPrice => product.sellingPrice * (1 - discountPercent / 100);
+
+  double get lineTotal => discountedPrice * quantity;
+
+  void dispose() => discountController.dispose();
 }
 
 const _paymentTypeOptions = [
   (value: 'cash', label: 'Cash', icon: Icons.payments_outlined),
-  (value: 'card', label: 'Card', icon: Icons.credit_card_outlined),
-  (value: 'bank_transfer', label: 'Bank', icon: Icons.account_balance_outlined),
   (value: 'credit', label: 'Credit', icon: Icons.receipt_long_outlined),
-  (value: 'split', label: 'Split', icon: Icons.call_split_rounded),
-];
-
-const _splitMethodOptions = [
-  (value: 'cash', label: 'Cash'),
-  (value: 'card', label: 'Card'),
-  (value: 'bank_transfer', label: 'Bank Transfer'),
 ];
 
 const _settlementMethodOptions = [
   (value: 'cash', label: 'Cash', icon: Icons.payments_outlined),
-  (value: 'card', label: 'Card', icon: Icons.credit_card_outlined),
-  (value: 'bank_transfer', label: 'Bank', icon: Icons.account_balance_outlined),
 ];
 
 class NewSaleScreen extends StatefulWidget {
@@ -73,12 +73,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
   List<Product> _products = [];
   List<Customer> _customers = [];
+  List<CustomerCategory> _categories = [];
+  CustomerCategory? _categoryFilter;
   final Map<int, _CartLine> _cart = {};
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  final TextEditingController _discountController = TextEditingController();
+  final TextEditingController _paidAmountController = TextEditingController();
 
   String _paymentType = 'cash';
   Customer? _selectedCustomer;
@@ -86,13 +88,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   bool _isSubmitting = false;
   String? _error;
 
-  final List<_SplitLine> _splitLines = [
-    _SplitLine(method: 'cash'),
-    _SplitLine(method: 'card'),
-  ];
-
   late final TextEditingController _settlementAmountController;
-  String _settlementMethod = 'cash';
+  final String _settlementMethod = 'cash';
 
   bool get _isSettlement => widget.isSettlement;
 
@@ -112,10 +109,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    _discountController.dispose();
+    _paidAmountController.dispose();
     _settlementAmountController.dispose();
-    for (final line in _splitLines) {
-      line.amountController.dispose();
+    for (final line in _cart.values) {
+      line.dispose();
     }
     super.dispose();
   }
@@ -130,9 +127,16 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     }
     final products = await _productService.list();
     final customers = await _customerService.list();
+    List<CustomerCategory> categories = [];
+    try {
+      categories = await _customerService.categories();
+    } catch (_) {
+      // Category filter is optional — skip silently if unavailable.
+    }
     setState(() {
       _products = products;
       _customers = customers;
+      _categories = categories;
       _isLoading = false;
     });
   }
@@ -154,6 +158,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       if (line == null) return;
       final newQty = line.quantity + delta;
       if (newQty <= 0) {
+        line.dispose();
         _cart.remove(productId);
       } else {
         line.quantity = newQty;
@@ -166,13 +171,26 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   double get _subtotal => _isSettlement ? _settlementAmount : _cart.values.fold(0, (sum, line) => sum + line.lineTotal);
   int get _itemCount => _isSettlement ? (_settlementAmount > 0 ? 1 : 0) : _cart.values.fold(0, (sum, line) => sum + line.quantity);
 
-  double get _discount {
-    final raw = double.tryParse(_discountController.text) ?? 0;
-    if (raw <= 0) return 0;
-    return raw > _subtotal ? _subtotal : raw;
+  double get _total => _subtotal;
+
+  /// Credit sales are never paid up front (the whole total becomes the
+  /// customer's balance). Cash sales are normally paid in full, but the
+  /// cashier can enter a smaller amount if the customer only pays part now.
+  bool get _allowsPartialPayment => _paymentType == 'cash';
+
+  /// Amount the customer actually handed over right now. Defaults to the
+  /// full total when the field is blank (untouched) so a normal, fully-paid
+  /// sale doesn't require the cashier to type anything.
+  double get _paidAmount {
+    if (!_allowsPartialPayment) return 0;
+    final text = _paidAmountController.text.trim();
+    if (text.isEmpty) return _total;
+    final parsed = double.tryParse(text) ?? _total;
+    return parsed < 0 ? 0 : (parsed > _total ? _total : parsed);
   }
 
-  double get _total => _subtotal - _discount;
+  /// Unpaid portion of this sale, tracked on the customer's account balance.
+  double get _balanceDue => _paymentType == 'credit' ? _total : ((_total - _paidAmount) * 100).round() / 100;
 
   List<Product> get _filteredProducts {
     final query = _searchQuery.trim().toLowerCase();
@@ -182,8 +200,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         .toList();
   }
 
-  double get _splitAssigned => _splitLines.fold(0, (sum, l) => sum + l.amount);
-  double get _splitRemaining => ((_total - _splitAssigned) * 100).round() / 100;
+  List<Customer> _filterCustomers(String query, {CustomerCategory? category}) {
+    final q = query.trim().toLowerCase();
+    return _customers.where((c) {
+      final matchesQuery = q.isEmpty || c.name.toLowerCase().contains(q) || (c.phone ?? '').toLowerCase().contains(q);
+      final matchesCategory = category == null || c.categoryId == category.id;
+      return matchesQuery && matchesCategory;
+    }).toList();
+  }
 
   Widget _productPlaceholder() {
     return Container(
@@ -193,6 +217,129 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       alignment: Alignment.center,
       child: const Icon(Icons.inventory_2_outlined, size: 20, color: AppColors.inkSoft),
     );
+  }
+
+  Future<void> _pickCustomer() async {
+    final searchController = TextEditingController();
+    CustomerCategory? sheetCategoryFilter = _categoryFilter;
+    final picked = await showModalBottomSheet<Customer>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final query = searchController.text;
+            final results = _filterCustomers(query, category: sheetCategoryFilter);
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+              child: SizedBox(
+                height: MediaQuery.of(sheetContext).size.height * 0.75,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text('Select Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.ink)),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.pop(sheetContext),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextField(
+                        controller: searchController,
+                        autofocus: true,
+                        onChanged: (_) => setSheetState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'Search by name or phone',
+                          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                          suffixIcon: searchController.text.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  onPressed: () => setSheetState(() => searchController.clear()),
+                                ),
+                        ),
+                      ),
+                    ),
+                    if (_categories.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 34,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          children: [
+                            _CategoryChip(
+                              label: 'All',
+                              selected: sheetCategoryFilter == null,
+                              onTap: () => setSheetState(() {
+                                sheetCategoryFilter = null;
+                                _categoryFilter = null;
+                              }),
+                            ),
+                            const SizedBox(width: 8),
+                            for (final cat in _categories) ...[
+                              _CategoryChip(
+                                label: cat.name,
+                                selected: sheetCategoryFilter?.id == cat.id,
+                                onTap: () => setSheetState(() {
+                                  sheetCategoryFilter = cat;
+                                  _categoryFilter = cat;
+                                }),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: results.isEmpty
+                          ? const Center(
+                              child: Text('No customers match your search.', style: TextStyle(color: AppColors.inkSoft)),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              itemCount: results.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (context, i) {
+                                final c = results[i];
+                                return Card(
+                                  child: ListTile(
+                                    title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    subtitle: Text(
+                                      [
+                                        if (c.phone != null && c.phone!.isNotEmpty) c.phone!,
+                                        if (c.categoryName != null) c.categoryName!,
+                                        if (c.currentBalance > 0) 'Owes Rs. ${c.currentBalance.toStringAsFixed(0)}',
+                                      ].join('  ·  '),
+                                    ),
+                                    onTap: () => Navigator.pop(sheetContext, c),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    searchController.dispose();
+    if (picked != null) {
+      setState(() => _selectedCustomer = picked);
+    }
   }
 
   Future<void> _openSettleCredit(Customer customer) async {
@@ -209,17 +356,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     }
   }
 
-  void _addSplitLine() {
-    setState(() => _splitLines.add(_SplitLine(method: 'cash')));
-  }
-
-  void _removeSplitLine(int index) {
-    setState(() {
-      _splitLines[index].amountController.dispose();
-      _splitLines.removeAt(index);
-    });
-  }
-
   Future<void> _submitSale() {
     return _isSettlement ? _submitSettlement() : _submitRegularSale();
   }
@@ -229,12 +365,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       setState(() => _error = 'Add at least one item.');
       return;
     }
-    if (_paymentType == 'credit' && _selectedCustomer == null) {
-      setState(() => _error = 'Select a customer for a credit sale.');
-      return;
-    }
-    if (_paymentType == 'split' && _splitRemaining != 0) {
-      setState(() => _error = 'Split payment amounts must add up to the total.');
+    if (_selectedCustomer == null) {
+      setState(() => _error = 'Select a customer to issue the bill.');
       return;
     }
 
@@ -245,15 +377,12 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
     try {
       final result = await _saleService.createSale(
-        customerId: _selectedCustomer?.id,
+        customerId: _selectedCustomer!.id,
         paymentType: _paymentType,
+        paidAmount: _allowsPartialPayment ? _paidAmount : null,
         items: _cart.values
-            .map((l) => SaleItemInput(productId: l.product.id, quantity: l.quantity))
+            .map((l) => SaleItemInput(productId: l.product.id, quantity: l.quantity, discountPercent: l.discountPercent))
             .toList(),
-        discount: _discount,
-        payments: _paymentType == 'split'
-            ? _splitLines.map((l) => SalePaymentInput(method: l.method, amount: l.amount)).toList()
-            : null,
       );
       if (!mounted) return;
       final sale = Sale.fromJson(result);
@@ -267,14 +396,15 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                   name: l.product.name,
                   quantity: l.quantity,
                   unitPrice: l.product.sellingPrice,
+                  discountedPrice: l.discountedPrice,
                   lineTotal: l.lineTotal,
                 ))
             .toList(),
         subtotal: _subtotal,
-        discount: _discount,
         total: _total,
         paymentType: _paymentType,
         customerName: _selectedCustomer?.name,
+        customerPhone: _selectedCustomer?.phone,
         cashierName: cashierName,
       );
 
@@ -332,14 +462,15 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             name: 'Credit Settlement',
             quantity: 1,
             unitPrice: amount,
+            discountedPrice: amount,
             lineTotal: amount,
           ),
         ],
         subtotal: amount,
-        discount: 0,
         total: amount,
         paymentType: 'credit_settlement',
         customerName: customer.name,
+        customerPhone: customer.phone,
         cashierName: cashierName,
       );
 
@@ -510,29 +641,80 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (_cart.isNotEmpty) ...[
+                  Row(
+                    children: const [
+                      Expanded(flex: 4, child: Text('Product', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.inkSoft))),
+                      SizedBox(
+                        width: 62,
+                        child: Text('Disc %', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.inkSoft)),
+                      ),
+                      SizedBox(width: 6),
+                      SizedBox(
+                        width: 60,
+                        child: Text('Price', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.inkSoft)),
+                      ),
+                      SizedBox(width: 6),
+                      SizedBox(
+                        width: 66,
+                        child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.inkSoft)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 140),
+                    constraints: const BoxConstraints(maxHeight: 180),
                     child: SingleChildScrollView(
                       child: Column(
                         children: _cart.values
                             .map((line) => Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
                                   child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       Expanded(
-                                        child: Text(
-                                          line.product.name,
-                                          style: const TextStyle(fontSize: 13.5, color: AppColors.ink),
-                                          overflow: TextOverflow.ellipsis,
+                                        flex: 4,
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              line.product.name,
+                                              style: const TextStyle(fontSize: 13.5, color: AppColors.ink),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            _QtyStepper(
+                                              quantity: line.quantity,
+                                              onDecrement: () => _updateQuantity(line.product.id, -1),
+                                              onIncrement: () => _updateQuantity(line.product.id, 1),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      _QtyStepper(
-                                        quantity: line.quantity,
-                                        onDecrement: () => _updateQuantity(line.product.id, -1),
-                                        onIncrement: () => _updateQuantity(line.product.id, 1),
-                                      ),
                                       SizedBox(
-                                        width: 76,
+                                        width: 62,
+                                        child: TextField(
+                                          controller: line.discountController,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                          textAlign: TextAlign.center,
+                                          onChanged: (_) => setState(() {}),
+                                          decoration: const InputDecoration(
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                            hintText: '0',
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      SizedBox(
+                                        width: 60,
+                                        child: Text(
+                                          line.discountedPrice.toStringAsFixed(2),
+                                          textAlign: TextAlign.right,
+                                          style: const TextStyle(fontSize: 12.5, color: AppColors.inkSoft),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      SizedBox(
+                                        width: 66,
                                         child: Text(
                                           'Rs. ${line.lineTotal.toStringAsFixed(2)}',
                                           textAlign: TextAlign.right,
@@ -562,128 +744,82 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     onSelectionChanged: (s) => setState(() => _paymentType = s.first),
                   ),
                 ),
-                if (_paymentType == 'credit') ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<Customer>(
-                          initialValue: _selectedCustomer,
-                          decoration: const InputDecoration(labelText: 'Customer'),
-                          items: _customers
-                              .map((c) => DropdownMenuItem(
-                                    value: c,
-                                    child: Text(
-                                      c.currentBalance > 0
-                                          ? '${c.name} (Owes Rs. ${c.currentBalance.toStringAsFixed(0)})'
-                                          : c.name,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ))
-                              .toList(),
-                          onChanged: (c) => setState(() => _selectedCustomer = c),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _pickCustomer,
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            label: const RequiredLabel('Customer'),
+                            prefixIcon: const Icon(Icons.person_search_rounded, size: 20),
+                          ),
+                          child: Text(
+                            _selectedCustomer == null
+                                ? 'Search customer by name or phone'
+                                : _selectedCustomer!.phone != null && _selectedCustomer!.phone!.isNotEmpty
+                                    ? '${_selectedCustomer!.name}  ·  ${_selectedCustomer!.phone}'
+                                    : _selectedCustomer!.name,
+                            style: TextStyle(
+                              color: _selectedCustomer == null ? AppColors.inkSoft : AppColors.ink,
+                              fontWeight: _selectedCustomer == null ? FontWeight.w400 : FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
-                      if (_selectedCustomer != null) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          height: 56,
-                          width: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.goodSoft,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(Icons.payments_outlined, size: 19, color: AppColors.good),
-                            tooltip: 'Settle credit',
-                            onPressed: () => _openSettleCredit(_selectedCustomer!),
+                    ),
+                    if (_selectedCustomer != null && _selectedCustomer!.currentBalance > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        height: 56,
+                        width: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.goodSoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.payments_outlined, size: 19, color: AppColors.good),
+                          tooltip: 'Settle credit',
+                          onPressed: () => _openSettleCredit(_selectedCustomer!),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (_allowsPartialPayment) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text('Customer Paid', style: TextStyle(fontSize: 13.5, color: AppColors.inkSoft)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _paidAmountController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            hintText: _total.toStringAsFixed(2),
+                            prefixText: 'Rs. ',
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
-                ],
-                if (_paymentType == 'split') ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.lineSoft,
-                      borderRadius: BorderRadius.circular(12),
+                  if (_balanceDue > 0) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Rs. ${_balanceDue.toStringAsFixed(2)} will be added to ${_selectedCustomer?.name ?? 'the customer\'s'} balance.',
+                      style: const TextStyle(fontSize: 12, color: AppColors.warn, fontWeight: FontWeight.w600),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            const Text('Split Payment', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink)),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: _addSplitLine,
-                              style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
-                              child: const Text('+ Add method', style: TextStyle(fontSize: 12.5)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        ..._splitLines.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final line = entry.value;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: DropdownButtonFormField<String>(
-                                    initialValue: line.method,
-                                    isDense: true,
-                                    decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-                                    items: _splitMethodOptions
-                                        .map((o) => DropdownMenuItem(value: o.value, child: Text(o.label, style: const TextStyle(fontSize: 13))))
-                                        .toList(),
-                                    onChanged: (v) => setState(() => line.method = v ?? line.method),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  flex: 2,
-                                  child: TextField(
-                                    controller: line.amountController,
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    onChanged: (_) => setState(() {}),
-                                    decoration: const InputDecoration(
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                      hintText: 'Amount',
-                                    ),
-                                  ),
-                                ),
-                                if (_splitLines.length > 2)
-                                  IconButton(
-                                    icon: const Icon(Icons.close_rounded, size: 18),
-                                    color: AppColors.critical,
-                                    onPressed: () => _removeSplitLine(index),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }),
-                        Text(
-                          _splitRemaining == 0
-                              ? 'Rs. ${_splitAssigned.toStringAsFixed(2)} assigned'
-                              : 'Rs. ${_splitAssigned.toStringAsFixed(2)} of Rs. ${_total.toStringAsFixed(2)} — Rs. ${_splitRemaining.toStringAsFixed(2)} remaining',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: _splitRemaining == 0 ? AppColors.good : AppColors.inkSoft,
-                            fontWeight: _splitRemaining == 0 ? FontWeight.w600 : FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ],
                 if (_error != null) ...[
                   const SizedBox(height: 10),
@@ -698,51 +834,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 ],
                 const SizedBox(height: 10),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text('Discount', style: TextStyle(fontSize: 13.5, color: AppColors.inkSoft)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _discountController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          hintText: '0.00',
-                          prefixText: 'Rs. ',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Subtotal', style: TextStyle(fontSize: 13, color: AppColors.inkSoft)),
-                    Text(
-                      'Rs. ${_subtotal.toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 13, color: AppColors.inkSoft),
-                    ),
-                  ],
-                ),
-                if (_discount > 0) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Discount', style: TextStyle(fontSize: 13, color: AppColors.good)),
-                      Text(
-                        '- Rs. ${_discount.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 13, color: AppColors.good),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Total', style: TextStyle(fontSize: 14, color: AppColors.inkSoft)),
@@ -752,6 +843,39 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     ),
                   ],
                 ),
+                if (_paymentType == 'credit') ...[
+                  const SizedBox(height: 4),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Balance due', style: TextStyle(fontSize: 13, color: AppColors.warn, fontWeight: FontWeight.w600)),
+                      Text('Full amount', style: TextStyle(fontSize: 13, color: AppColors.warn, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ] else if (_allowsPartialPayment && _balanceDue > 0) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Paid now', style: TextStyle(fontSize: 13, color: AppColors.inkSoft)),
+                      Text(
+                        'Rs. ${_paidAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 13, color: AppColors.inkSoft),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Balance due', style: TextStyle(fontSize: 13, color: AppColors.warn, fontWeight: FontWeight.w600)),
+                      Text(
+                        'Rs. ${_balanceDue.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 13, color: AppColors.warn, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 50,
@@ -819,7 +943,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     ))
                 .toList(),
             selected: {_settlementMethod},
-            onSelectionChanged: (s) => setState(() => _settlementMethod = s.first),
+            onSelectionChanged: (s) {},
           ),
           if (_error != null) ...[
             const SizedBox(height: 16),
@@ -902,6 +1026,37 @@ class _QtyStepper extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, size: 15, color: AppColors.inkSoft),
+      ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(17),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accent : AppColors.lineSoft,
+          borderRadius: BorderRadius.circular(17),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : AppColors.inkSoft,
+          ),
+        ),
       ),
     );
   }

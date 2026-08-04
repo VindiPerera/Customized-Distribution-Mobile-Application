@@ -11,18 +11,22 @@ use Illuminate\Support\Facades\DB;
 class CreditService
 {
     /**
-     * Record a credit sale against a customer's account.
+     * Record a sale's unpaid portion against a customer's account. Used both
+     * for full credit sales (nothing paid up front) and for cash/split sales
+     * where the customer only paid part of the total — in both cases the
+     * outstanding amount is the same debt to track on the ledger.
      */
-    public function recordSaleOnCredit(Customer $customer, Sale $sale): CustomerLedgerEntry
+    public function recordSaleOnCredit(Customer $customer, Sale $sale, ?float $amount = null): CustomerLedgerEntry
     {
-        return DB::transaction(function () use ($customer, $sale) {
+        return DB::transaction(function () use ($customer, $sale, $amount) {
             $lockedCustomer = Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail();
+            $owed = $amount ?? (float) $sale->total_amount;
 
-            $newBalance = (float) $lockedCustomer->current_balance + (float) $sale->total_amount;
+            $newBalance = (float) $lockedCustomer->current_balance + $owed;
 
             $entry = $lockedCustomer->ledgerEntries()->create([
                 'type' => 'sale',
-                'amount' => $sale->total_amount,
+                'amount' => $owed,
                 'balance_after' => $newBalance,
                 'reference_type' => Sale::class,
                 'reference_id' => $sale->id,

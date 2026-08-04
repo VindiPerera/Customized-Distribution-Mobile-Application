@@ -246,14 +246,18 @@ class BluetoothPrinterService {
     final bytes = <int>[];
     bytes.addAll(generator.row([
       PosColumn(text: 'Product', width: 5, styles: const PosStyles(bold: true)),
-      PosColumn(text: 'Price', width: 3, styles: const PosStyles(align: PosAlign.right, bold: true)),
+      PosColumn(text: 'Our Price', width: 3, styles: const PosStyles(align: PosAlign.right, bold: true)),
       PosColumn(text: 'Qty', width: 2, styles: const PosStyles(align: PosAlign.right, bold: true)),
       PosColumn(text: 'Total', width: 2, styles: const PosStyles(align: PosAlign.right, bold: true)),
     ]));
     bytes.addAll(generator.hr(linesAfter: 1));
 
     for (final line in receipt.lines) {
-      bytes.addAll(generator.text(line.name));
+      // generator.text() wraps automatically at the printer's character
+      // width, so a long product name spans extra lines instead of
+      // truncating.
+      bytes.addAll(generator.text(line.name, styles: const PosStyles(bold: true)));
+      bytes.addAll(generator.text('Rs. ${line.unitPrice.toStringAsFixed(2)} each', styles: const PosStyles(fontType: PosFontType.fontB)));
       bytes.addAll(generator.row([
         PosColumn(text: '', width: 5),
         PosColumn(text: 'Rs. ${line.discountedPrice.toStringAsFixed(2)}', width: 3, styles: const PosStyles(align: PosAlign.right)),

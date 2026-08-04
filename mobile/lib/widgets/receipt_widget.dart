@@ -25,7 +25,7 @@ const Map<String, Map<String, String>> _receiptStrings = {
     'phone': 'Phone',
     'cashier': 'Cashier',
     'product': 'Product',
-    'price': 'Price',
+    'price': 'Our Price',
     'qty': 'Qty',
     'amount': 'Total',
     'total': 'TOTAL',
@@ -41,7 +41,7 @@ const Map<String, Map<String, String>> _receiptStrings = {
     'phone': 'දුරකථනය',
     'cashier': 'කැෂියර්',
     'product': 'භාණ්ඩය',
-    'price': 'මිල',
+    'price': 'අපේ මිල',
     'qty': 'ප්‍රමාණය',
     'amount': 'එකතුව',
     'total': 'එකතුව',
@@ -160,28 +160,27 @@ class ReceiptWidget extends StatelessWidget {
           const _DashedDivider(),
           SizedBox(height: 6 * _scale),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 flex: 4,
-                child: Text(t['product']!, style: mono.copyWith(fontWeight: FontWeight.w900), softWrap: false, overflow: TextOverflow.visible),
+                child: Text(t['product']!, style: mono.copyWith(fontWeight: FontWeight.w900)),
               ),
               Expanded(
                 flex: 3,
-                child: Text(t['price']!, textAlign: TextAlign.right, style: mono.copyWith(fontWeight: FontWeight.w900), softWrap: false),
-              ),
-              Expanded(
-                flex: 2,
                 child: Text(
-                  t['qty']!,
+                  t['price']!,
                   textAlign: TextAlign.right,
                   style: mono.copyWith(fontWeight: FontWeight.w900),
-                  softWrap: false,
-                  overflow: TextOverflow.visible,
                 ),
               ),
               Expanded(
+                flex: 2,
+                child: Text(t['qty']!, textAlign: TextAlign.right, style: mono.copyWith(fontWeight: FontWeight.w900)),
+              ),
+              Expanded(
                 flex: 3,
-                child: Text(t['amount']!, textAlign: TextAlign.right, style: mono.copyWith(fontWeight: FontWeight.w900), softWrap: false),
+                child: Text(t['amount']!, textAlign: TextAlign.right, style: mono.copyWith(fontWeight: FontWeight.w900)),
               ),
             ],
           ),
@@ -248,37 +247,44 @@ class _ReceiptLineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(line.name, style: mono.copyWith(fontSize: 15 * scale, fontWeight: FontWeight.w700)),
-        Row(
-          children: [
-            Expanded(
-              flex: 4,
-              child: SizedBox.shrink(),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                'Rs. ${line.discountedPrice.toStringAsFixed(2)}',
-                textAlign: TextAlign.right,
-                style: mono.copyWith(fontSize: 13.5 * scale),
+        // Product name + its normal (pre-discount) selling price. The name
+        // wraps onto extra lines instead of overflowing/clipping when it's
+        // too long for the column.
+        Expanded(
+          flex: 4,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(line.name, style: mono.copyWith(fontSize: 15 * scale, fontWeight: FontWeight.w700)),
+              Text(
+                'Rs. ${line.unitPrice.toStringAsFixed(2)}',
+                style: mono.copyWith(fontSize: 12.5 * scale, color: mono.color!.withValues(alpha: 0.7)),
               ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text('x${line.quantity}', textAlign: TextAlign.right, style: mono.copyWith(fontSize: 14 * scale)),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                'Rs. ${line.lineTotal.toStringAsFixed(2)}',
-                textAlign: TextAlign.right,
-                style: mono.copyWith(fontSize: 14 * scale, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            'Rs. ${line.discountedPrice.toStringAsFixed(2)}',
+            textAlign: TextAlign.right,
+            style: mono.copyWith(fontSize: 13.5 * scale),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text('x${line.quantity}', textAlign: TextAlign.right, style: mono.copyWith(fontSize: 14 * scale)),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            'Rs. ${line.lineTotal.toStringAsFixed(2)}',
+            textAlign: TextAlign.right,
+            style: mono.copyWith(fontSize: 14 * scale, fontWeight: FontWeight.w800),
+          ),
         ),
       ],
     );

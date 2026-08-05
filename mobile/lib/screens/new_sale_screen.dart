@@ -99,6 +99,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  int? _productCategoryFilter;
 
   final TextEditingController _paidAmountController = TextEditingController();
   final TextEditingController _paymentReferenceController = TextEditingController();
@@ -214,12 +215,28 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   /// Unpaid portion of this sale, tracked on the customer's account balance.
   double get _balanceDue => _paymentType == 'credit' ? _total : ((_total - _paidAmount) * 100).round() / 100;
 
+  /// Distinct product categories present in the loaded catalog, sorted by
+  /// name. Derived from the products themselves (each already carries its
+  /// category via the `/products` response) instead of a separate API call.
+  List<({int id, String name})> get _productCategories {
+    final seen = <int, String>{};
+    for (final p in _products) {
+      if (p.categoryId != null && p.categoryName != null) {
+        seen[p.categoryId!] = p.categoryName!;
+      }
+    }
+    final entries = seen.entries.map((e) => (id: e.key, name: e.value)).toList();
+    entries.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return entries;
+  }
+
   List<Product> get _filteredProducts {
     final query = _searchQuery.trim().toLowerCase();
-    if (query.isEmpty) return _products;
-    return _products
-        .where((p) => p.name.toLowerCase().contains(query) || p.sku.toLowerCase().contains(query))
-        .toList();
+    return _products.where((p) {
+      final matchesQuery = query.isEmpty || p.name.toLowerCase().contains(query) || p.sku.toLowerCase().contains(query);
+      final matchesCategory = _productCategoryFilter == null || p.categoryId == _productCategoryFilter;
+      return matchesQuery && matchesCategory;
+    }).toList();
   }
 
   List<Customer> _filterCustomers(String query, {CustomerCategory? category}) {
@@ -570,6 +587,32 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               ),
             ),
           ),
+          if (_productCategories.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 34,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  _CategoryChip(
+                    label: 'All',
+                    selected: _productCategoryFilter == null,
+                    onTap: () => setState(() => _productCategoryFilter = null),
+                  ),
+                  const SizedBox(width: 8),
+                  for (final cat in _productCategories) ...[
+                    _CategoryChip(
+                      label: cat.name,
+                      selected: _productCategoryFilter == cat.id,
+                      onTap: () => setState(() => _productCategoryFilter = cat.id),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+            ),
+          ],
           Expanded(
             child: _products.isEmpty
                 ? const Center(
@@ -577,7 +620,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                   )
                 : _filteredProducts.isEmpty
                     ? const Center(
-                        child: Text('No products match your search.', style: TextStyle(color: AppColors.inkSoft)),
+                        child: Text('No products match your filters.', style: TextStyle(color: AppColors.inkSoft)),
                       )
                     : ListView.separated(
                     padding: const EdgeInsets.all(16),

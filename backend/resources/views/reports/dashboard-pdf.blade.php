@@ -65,10 +65,10 @@
 
     <h2>Payment Method Breakdown</h2>
     <table>
-        <thead><tr><th>Method</th><th class="num">Total Sales</th></tr></thead>
+        <thead><tr><th>Method</th><th class="num">No. of Sales</th><th class="num">Total Sales</th></tr></thead>
         <tbody>
             @foreach ($paymentBreakdown as $row)
-                <tr><td>{{ \Illuminate\Support\Str::headline($row['method']) }}</td><td class="num">Rs. {{ number_format($row['total'], 2) }}</td></tr>
+                <tr><td>{{ \Illuminate\Support\Str::headline($row['method']) }}</td><td class="num">{{ $row['count'] }}</td><td class="num">Rs. {{ number_format($row['total'], 2) }}</td></tr>
             @endforeach
         </tbody>
     </table>

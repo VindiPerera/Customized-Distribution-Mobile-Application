@@ -7,18 +7,14 @@ const ACCENT = '#0f6e5c';
 // Validated categorical palette (dataviz skill reference order): blue, orange, aqua, yellow, magenta.
 const PAYMENT_METHOD_COLORS = {
     cash: '#2a78d6',
-    card: '#eb6834',
-    bank_transfer: '#1baf7a',
     credit: '#eda100',
-    split: '#e87ba4',
+    cheque: '#1baf7a',
 };
 
 const PAYMENT_METHOD_LABELS = {
     cash: 'Cash',
-    card: 'Card',
-    bank_transfer: 'Bank Transfer',
     credit: 'Credit',
-    split: 'Split',
+    cheque: 'Cheque',
 };
 
 function readData(elementId) {

@@ -13,6 +13,7 @@ class Sale extends Model
         'customer_id',
         'user_id',
         'payment_type',
+        'payment_reference',
         'subtotal',
         'total_amount',
         'paid_amount',

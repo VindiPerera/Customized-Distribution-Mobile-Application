@@ -8,7 +8,7 @@ class InvoiceNumberService
 {
     /**
      * Atomically claim the next sequential, digits-only invoice number
-     * (starting at 100000). Must be called from inside the same DB
+     * (starting at 1). Must be called from inside the same DB
      * transaction that creates the Sale, so a failed sale never burns a
      * number.
      */

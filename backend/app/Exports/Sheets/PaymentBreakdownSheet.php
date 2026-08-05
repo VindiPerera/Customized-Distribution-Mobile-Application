@@ -13,12 +13,12 @@ class PaymentBreakdownSheet implements FromCollection, WithHeadings, WithTitle
 
     public function collection(): Collection
     {
-        return $this->rows->map(fn ($row) => [ucwords(str_replace('_', ' ', $row['method'])), $row['total']]);
+        return $this->rows->map(fn ($row) => [ucwords(str_replace('_', ' ', $row['method'])), $row['count'], $row['total']]);
     }
 
     public function headings(): array
     {
-        return ['Payment Method', 'Total Sales'];
+        return ['Payment Method', 'No. of Sales', 'Total Sales'];
     }
 
     public function title(): string

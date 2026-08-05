@@ -13,7 +13,13 @@ class ProductController extends Controller
 {
     public function index()
     {
-        return Product::with('category', 'supplier')->orderBy('name')->paginate(20);
+        // The mobile app's product picker needs the full catalog in one shot
+        // (search/select while ringing up a sale), so return everything
+        // instead of paginating — paginate(20) was silently hiding every
+        // product past page 1 from the mobile list.
+        return response()->json([
+            'data' => Product::with('category', 'supplier')->orderBy('name')->get(),
+        ]);
     }
 
     public function store(Request $request)

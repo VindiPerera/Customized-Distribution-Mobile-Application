@@ -17,12 +17,12 @@ return new class extends Migration
     {
         Schema::create('invoice_sequences', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('next_number')->default(100000);
+            $table->unsignedBigInteger('next_number')->default(1);
             $table->timestamps();
         });
 
         DB::table('invoice_sequences')->insert([
-            'next_number' => 100000,
+            'next_number' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);

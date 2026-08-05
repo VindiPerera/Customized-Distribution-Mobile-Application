@@ -3,8 +3,7 @@
         <h2 class="font-display text-xl font-semibold text-ink leading-tight">New Sale</h2>
     </x-slot>
 
-    <div class="py-8"
-         x-data="posForm({
+    <div class="py-8" x-data="posForm({
             products: {{ $products->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => (float) $p->selling_price, 'stock' => $p->stock_quantity])->values()->toJson() }},
             customers: {{ $customers->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'balance' => (float) $c->current_balance])->values()->toJson() }},
          })">
@@ -29,37 +28,52 @@
                             <x-input-label value="Payment Type" required />
                             <div class="mt-1 flex flex-wrap gap-2">
                                 <template x-for="type in paymentTypes" :key="type.value">
-                                    <label class="flex items-center gap-1.5 border rounded-md px-3 py-1.5 cursor-pointer" :class="paymentType === type.value ? 'border-accent bg-accent-soft' : 'border-line'">
-                                        <input type="radio" name="payment_type" :value="type.value" x-model="paymentType">
+                                    <label
+                                        class="flex items-center gap-1.5 border rounded-md px-3 py-1.5 cursor-pointer"
+                                        :class="paymentType === type.value ? 'border-accent bg-accent-soft' : 'border-line'">
+                                        <input type="radio" name="payment_type" :value="type.value"
+                                            x-model="paymentType">
                                         <span class="text-sm" x-text="type.label"></span>
                                     </label>
                                 </template>
+                            </div>
+                            <div class="mt-2" x-show="paymentType === 'cheque'" x-cloak>
+                                <x-input-label for="payment_reference" value="Cheque Details / Reference" />
+                                <x-text-input id="payment_reference" name="payment_reference" type="text"
+                                    class="mt-1 block w-full text-sm" placeholder="e.g. Cheque No: 123456 Bank of Ceylon" />
                             </div>
                         </div>
 
                         <div>
                             <x-input-label for="customer_id" value="Customer" required />
                             <div class="mt-1 flex items-center gap-2">
-                                <select id="customer_id" name="customer_id" x-model="customerId" class="block w-full border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent" required>
+                                <select id="customer_id" name="customer_id" x-model="customerId"
+                                    class="block w-full border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent"
+                                    required>
                                     <option value="">Select customer...</option>
                                     <template x-for="c in customers" :key="c.id">
-                                        <option :value="c.id" x-text="c.balance > 0 ? c.name + ' (Owes Rs. ' + c.balance.toFixed(0) + ')' : c.name"></option>
+                                        <option :value="c.id"
+                                            x-text="c.balance > 0 ? c.name + ' (Owes Rs. ' + c.balance.toFixed(0) + ')' : c.name">
+                                        </option>
                                     </template>
                                 </select>
-                                <a :href="customerId ? '/customers/' + customerId : '#'"
-                                   x-show="customerId"
-                                   target="_blank"
-                                   class="shrink-0 text-xs text-accent hover:underline whitespace-nowrap">Settle credit</a>
+                                <a :href="customerId ? '/customers/' + customerId : '#'" x-show="customerId"
+                                    target="_blank"
+                                    class="shrink-0 text-xs text-accent hover:underline whitespace-nowrap">Settle
+                                    credit</a>
                             </div>
                         </div>
                     </div>
 
                     <div>
                         <x-input-label value="Add Product" />
-                        <select @change="addItem($event.target.value); $event.target.value = ''" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent">
+                        <select @change="addItem($event.target.value); $event.target.value = ''"
+                            class="mt-1 block w-full border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent">
                             <option value="">Select a product to add...</option>
                             <template x-for="p in products" :key="p.id">
-                                <option :value="p.id" x-text="p.name + ' — Rs. ' + p.price.toFixed(2) + ' (Stock: ' + p.stock + ')'"></option>
+                                <option :value="p.id"
+                                    x-text="p.name + ' — Rs. ' + p.price.toFixed(2) + ' (Stock: ' + p.stock + ')'">
+                                </option>
                             </template>
                         </select>
                     </div>
@@ -68,7 +82,7 @@
                         <thead>
                             <tr class="text-left text-ink-soft border-b border-line">
                                 <th class="py-2">Product</th>
-                                <th class="w-28 text-right">Discount %</th>
+                                <th class="w-36 text-right">Discount</th>
                                 <th class="w-28 text-right">Price</th>
                                 <th class="w-20">Qty</th>
                                 <th class="text-right">Total</th>
@@ -80,21 +94,31 @@
                                 <tr class="border-b border-line">
                                     <td class="py-2">
                                         <div x-text="line.name"></div>
-                                        <div class="text-xs text-ink-soft" x-text="'Rs. ' + line.price.toFixed(2) + ' each'"></div>
+                                        <div class="text-xs text-ink-soft"
+                                            x-text="'Rs. ' + line.price.toFixed(2) + ' each'"></div>
                                     </td>
                                     <td>
-                                        <input type="number" min="0" max="100" step="0.01" x-model.number="line.discountPercent" class="w-24 border-line rounded-md shadow-sm text-sm text-right focus:border-accent focus:ring-accent">
-                                        <input type="hidden" :name="'items['+index+'][discount_percent]'" :value="line.discountPercent">
+                                        <div class="flex items-center justify-end gap-1">
+                                            <input type="number" min="0" step="0.01" x-model.number="line.discountValue" class="w-20 border-line rounded-md shadow-sm text-sm text-right focus:border-accent focus:ring-accent">
+                                            <select x-model="line.discountType" class="py-1.5 px-1.5 text-xs border-line rounded-md focus:border-accent focus:ring-accent font-medium">
+                                                <option value="percent">%</option>
+                                                <option value="amount">Rs</option>
+                                            </select>
+                                            <input type="hidden" :name="'items['+index+'][discount_percent]'" :value="lineDiscountPercent(line)">
+                                        </div>
                                     </td>
                                     <td class="text-right" x-text="'Rs. ' + discountedPrice(line).toFixed(2)"></td>
                                     <td>
-                                        <input type="number" min="1" x-model.number="line.qty" class="w-20 border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent">
+                                        <input type="number" min="1" x-model.number="line.qty"
+                                            class="w-20 border-line rounded-md shadow-sm text-sm focus:border-accent focus:ring-accent">
                                         <input type="hidden" :name="'items['+index+'][product_id]'" :value="line.id">
                                         <input type="hidden" :name="'items['+index+'][quantity]'" :value="line.qty">
                                     </td>
-                                    <td class="text-right" x-text="'Rs. ' + (discountedPrice(line) * line.qty).toFixed(2)"></td>
+                                    <td class="text-right"
+                                        x-text="'Rs. ' + (discountedPrice(line) * line.qty).toFixed(2)"></td>
                                     <td class="text-right">
-                                        <button type="button" @click="cart.splice(index, 1)" class="text-critical text-xs">Remove</button>
+                                        <button type="button" @click="cart.splice(index, 1)"
+                                            class="text-critical text-xs">Remove</button>
                                     </td>
                                 </tr>
                             </template>
@@ -130,13 +154,28 @@
                 paymentTypes: [
                     { value: 'cash', label: 'Cash' },
                     { value: 'credit', label: 'Credit' },
+                    { value: 'cheque', label: 'Cheque' },
                 ],
                 paymentType: 'cash',
                 customerId: '',
                 errorMsg: '',
+                lineDiscountPercent(line) {
+                    const val = Number(line.discountValue) || 0;
+                    if (line.discountType === 'percent') {
+                        return Math.min(Math.max(val, 0), 100);
+                    } else {
+                        if (!line.price) return 0;
+                        return Math.min(Math.max((val / line.price) * 100, 0), 100);
+                    }
+                },
                 discountedPrice(line) {
-                    const pct = Number(line.discountPercent) || 0;
-                    return line.price * (1 - Math.min(Math.max(pct, 0), 100) / 100);
+                    const val = Number(line.discountValue) || 0;
+                    if (line.discountType === 'percent') {
+                        const pct = Math.min(Math.max(val, 0), 100);
+                        return line.price * (1 - pct / 100);
+                    } else {
+                        return Math.max(line.price - val, 0);
+                    }
                 },
                 get total() {
                     return this.cart.reduce((sum, l) => sum + this.discountedPrice(l) * l.qty, 0);

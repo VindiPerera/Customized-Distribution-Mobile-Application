@@ -32,6 +32,7 @@ class SaleDetail {
   final int id;
   final String invoiceNumber;
   final String paymentType;
+  final String? paymentReference;
   final double subtotal;
   final double totalAmount;
   final DateTime saleDate;
@@ -44,6 +45,7 @@ class SaleDetail {
     required this.id,
     required this.invoiceNumber,
     required this.paymentType,
+    this.paymentReference,
     required this.subtotal,
     required this.totalAmount,
     required this.saleDate,
@@ -58,6 +60,7 @@ class SaleDetail {
       id: json['id'],
       invoiceNumber: json['invoice_number'],
       paymentType: json['payment_type'],
+      paymentReference: json['payment_reference'],
       subtotal: double.parse((json['subtotal'] ?? json['total_amount']).toString()),
       totalAmount: double.parse(json['total_amount'].toString()),
       saleDate: DateTime.parse(json['sale_date']),

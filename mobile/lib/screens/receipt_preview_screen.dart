@@ -78,8 +78,14 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
       // Thermal printer firmware has no Sinhala font, so native ESC/POS text
       // commands can't render it - fall back to printing a bitmap of the
       // same widget shown in the preview above, which already renders
-      // Sinhala correctly via NotoSansSinhala.
-      final printed = _shop!.receiptLanguage == 'si'
+      // Sinhala correctly via NotoSansSinhala. Triggered either by the
+      // shop's configured receipt language, or by the receipt's actual
+      // content (e.g. a product name typed in Sinhala even though the shop
+      // otherwise prints in English) - checking only the language setting
+      // let such receipts fall through to the native path and crash.
+      final needsImage = _shop!.receiptLanguage == 'si' ||
+          !BluetoothPrinterService.canPrintAsText(widget.receipt, _shop!);
+      final printed = needsImage
           ? await _printerService.printReceiptImage(_boundaryKey, paperSize: _shop!.paperSize)
           : await _printerService.printReceipt(widget.receipt, _shop!);
       if (mounted) {

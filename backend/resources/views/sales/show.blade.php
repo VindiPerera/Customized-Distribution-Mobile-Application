@@ -20,7 +20,10 @@
                         <span class="px-3 py-1 rounded text-sm font-medium {{ $sale->paymentTypeBadgeClasses() }}">
                             {{ $sale->paymentTypeLabel() }} Sale
                         </span>
-                        <p class="text-sm text-ink-soft mt-2">Sold by: {{ $sale->user->name }}</p>
+                        @if ($sale->payment_reference)
+                            <p class="text-sm font-medium text-ink mt-2">Ref: {{ $sale->payment_reference }}</p>
+                        @endif
+                        <p class="text-sm text-ink-soft mt-1">Sold by: {{ $sale->user->name }}</p>
                     </div>
                 </div>
 

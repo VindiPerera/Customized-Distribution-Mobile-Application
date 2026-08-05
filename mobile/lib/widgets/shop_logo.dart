@@ -14,16 +14,22 @@ class ShopLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: Image.network(
-        ApiClient.logoUrl,
+      child: Image.asset(
+        'assets/images/logo.png',
         width: size,
         height: size,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return _fallback();
-        },
-        errorBuilder: (context, error, stackTrace) => _fallback(),
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Image.network(
+          ApiClient.logoUrl,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return _fallback();
+          },
+          errorBuilder: (context, error, stackTrace) => _fallback(),
+        ),
       ),
     );
   }

@@ -18,7 +18,7 @@ class SaleController extends Controller
     public function index(Request $request)
     {
         $sales = Sale::with('customer', 'user')
-            ->when($request->payment_type, fn ($q) => $q->where('payment_type', $request->payment_type))
+            ->when($request->payment_type, fn($q) => $q->where('payment_type', $request->payment_type))
             ->latest('sale_date')
             ->paginate(20)
             ->withQueryString();
@@ -38,7 +38,8 @@ class SaleController extends Controller
     {
         $data = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
-            'payment_type' => ['required', 'in:cash,credit'],
+            'payment_type' => ['required', 'in:cash,credit,cheque'],
+            'payment_reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],

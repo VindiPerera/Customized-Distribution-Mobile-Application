@@ -13,14 +13,17 @@ import '../services/sale_service.dart';
 import '../theme.dart';
 import 'receipt_preview_screen.dart';
 
+enum DiscountType { percent, amount }
+
 class _CartLine {
   final Product product;
   int quantity;
+  DiscountType discountType;
 
-  /// Per-line percentage discount (0-100), entered at billing time.
+  /// Per-line discount value, entered at billing time.
   final TextEditingController discountController;
 
-  _CartLine(this.product, this.quantity, {double discountPercent = 0})
+  _CartLine(this.product, this.quantity, {double discountPercent = 0, this.discountType = DiscountType.percent})
       : discountController = TextEditingController(
           text: discountPercent > 0 ? _trimZeros(discountPercent) : '',
         );
@@ -30,12 +33,28 @@ class _CartLine {
     return s.replaceFirst(RegExp(r'\.?0+$'), '');
   }
 
+  double get discountValue => double.tryParse(discountController.text) ?? 0;
+
   double get discountPercent {
-    final raw = double.tryParse(discountController.text) ?? 0;
-    return raw < 0 ? 0 : (raw > 100 ? 100 : raw);
+    final raw = discountValue;
+    if (discountType == DiscountType.percent) {
+      return raw < 0 ? 0 : (raw > 100 ? 100 : raw);
+    } else {
+      if (product.sellingPrice <= 0) return 0;
+      final pct = (raw / product.sellingPrice) * 100;
+      return pct < 0 ? 0 : (pct > 100 ? 100 : pct);
+    }
   }
 
-  double get discountedPrice => product.sellingPrice * (1 - discountPercent / 100);
+  double get discountedPrice {
+    if (discountType == DiscountType.percent) {
+      return product.sellingPrice * (1 - discountPercent / 100);
+    } else {
+      final val = discountValue;
+      final price = product.sellingPrice - val;
+      return price < 0 ? 0 : price;
+    }
+  }
 
   double get lineTotal => discountedPrice * quantity;
 
@@ -45,6 +64,7 @@ class _CartLine {
 const _paymentTypeOptions = [
   (value: 'cash', label: 'Cash', icon: Icons.payments_outlined),
   (value: 'credit', label: 'Credit', icon: Icons.receipt_long_outlined),
+  (value: 'cheque', label: 'Cheque', icon: Icons.request_quote_outlined),
 ];
 
 const _settlementMethodOptions = [
@@ -81,6 +101,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   String _searchQuery = '';
 
   final TextEditingController _paidAmountController = TextEditingController();
+  final TextEditingController _paymentReferenceController = TextEditingController();
 
   String _paymentType = 'cash';
   Customer? _selectedCustomer;
@@ -110,6 +131,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   void dispose() {
     _searchController.dispose();
     _paidAmountController.dispose();
+    _paymentReferenceController.dispose();
     _settlementAmountController.dispose();
     for (final line in _cart.values) {
       line.dispose();
@@ -379,6 +401,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       final result = await _saleService.createSale(
         customerId: _selectedCustomer!.id,
         paymentType: _paymentType,
+        paymentReference: _paymentReferenceController.text.trim(),
         paidAmount: _allowsPartialPayment ? _paidAmount : null,
         items: _cart.values
             .map((l) => SaleItemInput(productId: l.product.id, quantity: l.quantity, discountPercent: l.discountPercent))
@@ -645,8 +668,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     children: const [
                       Expanded(flex: 4, child: Text('Product', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.inkSoft))),
                       SizedBox(
-                        width: 62,
-                        child: Text('Disc %', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.inkSoft)),
+                        width: 72,
+                        child: Text('Discount', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.inkSoft)),
                       ),
                       SizedBox(width: 6),
                       SizedBox(
@@ -690,16 +713,35 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                                         ),
                                       ),
                                       SizedBox(
-                                        width: 62,
+                                        width: 72,
                                         child: TextField(
                                           controller: line.discountController,
                                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                           textAlign: TextAlign.center,
                                           onChanged: (_) => setState(() {}),
-                                          decoration: const InputDecoration(
+                                          decoration: InputDecoration(
                                             isDense: true,
-                                            contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                                             hintText: '0',
+                                            suffixIcon: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  line.discountType = line.discountType == DiscountType.percent
+                                                      ? DiscountType.amount
+                                                      : DiscountType.percent;
+                                                });
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.only(right: 6),
+                                                alignment: Alignment.centerRight,
+                                                width: 24,
+                                                child: Text(
+                                                  line.discountType == DiscountType.percent ? '%' : 'Rs',
+                                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.accent),
+                                                ),
+                                              ),
+                                            ),
+                                            suffixIconConstraints: const BoxConstraints(minWidth: 24, minHeight: 0),
                                           ),
                                         ),
                                       ),
@@ -741,9 +783,25 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                             ))
                         .toList(),
                     selected: {_paymentType},
-                    onSelectionChanged: (s) => setState(() => _paymentType = s.first),
+                    onSelectionChanged: (s) => setState(() {
+                      _paymentType = s.first;
+                      if (_paymentType != 'cheque') {
+                        _paymentReferenceController.clear();
+                      }
+                    }),
                   ),
                 ),
+                if (_paymentType == 'cheque') ...[
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _paymentReferenceController,
+                    decoration: const InputDecoration(
+                      labelText: 'Cheque Details / Reference',
+                      hintText: 'e.g. Cheque No: 123456 BOC',
+                      prefixIcon: Icon(Icons.description_outlined, size: 20),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

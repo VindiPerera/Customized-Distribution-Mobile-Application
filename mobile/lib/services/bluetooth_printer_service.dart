@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
@@ -32,6 +33,29 @@ class PrinterDevice {
 }
 
 class BluetoothPrinterService {
+  /// True only if every piece of text on the receipt fits in the printer's
+  /// built-in Latin-1 character set. Thermal printer firmware has no
+  /// Sinhala (or other non-Latin) font, so [printReceipt]'s native ESC/POS
+  /// text commands throw if any field falls outside Latin-1 - most often a
+  /// product name typed in Sinhala, even when the shop's receipt language
+  /// is set to English. Callers should check this (in addition to the
+  /// language setting) before choosing between [printReceipt] and
+  /// [printReceiptImage].
+  static bool canPrintAsText(ReceiptData receipt, ShopSettings shop) {
+    final fields = <String>[
+      shop.name,
+      shop.address,
+      shop.phone,
+      shop.companyPhone,
+      shop.taxId,
+      shop.footerNote,
+      receipt.customerName ?? '',
+      receipt.cashierName,
+      for (final line in receipt.lines) line.name,
+    ];
+    return fields.every((s) => s.runes.every((r) => r <= 0xFF));
+  }
+
   /// Android 12+ (API 31+) treats BLUETOOTH_CONNECT/SCAN as runtime
   /// permissions: declaring them in the manifest alone does nothing, they
   /// must be explicitly granted or every connect/write call silently fails
@@ -181,10 +205,20 @@ class BluetoothPrinterService {
   /// the whole receipt print, since the logo isn't essential information.
   Future<List<int>> _buildLogo(Generator generator) async {
     try {
-      final response = await http.get(Uri.parse(ApiClient.logoUrl)).timeout(const Duration(seconds: 5));
-      if (response.statusCode != 200) return const [];
+      Uint8List? imageBytes;
+      try {
+        final byteData = await rootBundle.load('assets/images/logo.png');
+        imageBytes = byteData.buffer.asUint8List();
+      } catch (_) {
+        final response = await http.get(Uri.parse(ApiClient.logoUrl)).timeout(const Duration(seconds: 5));
+        if (response.statusCode == 200) {
+          imageBytes = response.bodyBytes;
+        }
+      }
 
-      final decoded = img.decodeImage(response.bodyBytes);
+      if (imageBytes == null) return const [];
+
+      final decoded = img.decodeImage(imageBytes);
       if (decoded == null) return const [];
 
       final resized = img.copyResize(decoded, width: 200);

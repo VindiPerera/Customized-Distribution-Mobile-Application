@@ -23,6 +23,7 @@ class ReceiptData {
   final double subtotal;
   final double total;
   final String paymentType;
+  final String? paymentReference;
   final String? customerName;
   final String? customerPhone;
   final String cashierName;
@@ -34,6 +35,7 @@ class ReceiptData {
     required this.subtotal,
     required this.total,
     required this.paymentType,
+    this.paymentReference,
     this.customerName,
     this.customerPhone,
     required this.cashierName,
@@ -55,6 +57,7 @@ class ReceiptData {
       subtotal: sale.subtotal,
       total: sale.totalAmount,
       paymentType: sale.paymentType,
+      paymentReference: sale.paymentReference,
       customerName: sale.customerName,
       customerPhone: sale.customerPhone,
       cashierName: sale.cashierName,

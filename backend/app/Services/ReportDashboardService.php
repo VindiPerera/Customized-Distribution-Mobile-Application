@@ -15,8 +15,9 @@ class ReportDashboardService
 {
     /**
      * Fixed display order so the legend/table never reflows between periods.
+     * Kept in sync with the `sales.payment_type` enum (cash, credit, cheque).
      */
-    private const PAYMENT_METHODS = ['cash', 'card', 'bank_transfer', 'credit', 'split'];
+    private const PAYMENT_METHODS = ['cash', 'credit', 'cheque'];
 
     public function build(Carbon $from, Carbon $to): array
     {
@@ -82,15 +83,17 @@ class ReportDashboardService
 
     private function paymentBreakdown(Carbon $from, Carbon $to): Collection
     {
-        $totals = Sale::whereBetween('sale_date', [$from, $to])
+        $rows = Sale::whereBetween('sale_date', [$from, $to])
             ->where('status', 'completed')
-            ->selectRaw('payment_type, SUM(total_amount) as total')
+            ->selectRaw('payment_type, COUNT(*) as count, SUM(total_amount) as total')
             ->groupBy('payment_type')
-            ->pluck('total', 'payment_type');
+            ->get()
+            ->keyBy('payment_type');
 
         return collect(self::PAYMENT_METHODS)->map(fn ($method) => [
             'method' => $method,
-            'total' => (float) ($totals[$method] ?? 0),
+            'count' => (int) ($rows[$method]->count ?? 0),
+            'total' => (float) ($rows[$method]->total ?? 0),
         ]);
     }
 

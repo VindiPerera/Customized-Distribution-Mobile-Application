@@ -12,11 +12,13 @@ class SaleService {
     required String paymentType,
     required List<SaleItemInput> items,
     double? paidAmount,
+    String? paymentReference,
   }) async {
     return await _api.post('/sales', {
       'customer_id': customerId,
       'payment_type': paymentType,
       if (paidAmount != null) 'paid_amount': paidAmount,
+      if (paymentReference != null && paymentReference.isNotEmpty) 'payment_reference': paymentReference,
       'items': items.map((e) => e.toJson()).toList(),
     });
   }

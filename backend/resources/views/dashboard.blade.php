@@ -113,6 +113,7 @@
                             <thead class="bg-line-soft">
                                 <tr class="text-left text-ink-soft">
                                     <th class="px-3 py-2">Method</th>
+                                    <th class="px-3 py-2 text-right">Count</th>
                                     <th class="px-3 py-2 text-right">Total</th>
                                 </tr>
                             </thead>
@@ -120,6 +121,7 @@
                                 @foreach ($paymentBreakdown as $row)
                                     <tr class="border-t border-line">
                                         <td class="px-3 py-2">{{ \Illuminate\Support\Str::headline($row['method']) }}</td>
+                                        <td class="px-3 py-2 text-right">{{ $row['count'] }}</td>
                                         <td class="px-3 py-2 text-right font-medium">Rs. {{ number_format($row['total'], 2) }}</td>
                                     </tr>
                                 @endforeach

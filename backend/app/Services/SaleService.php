@@ -38,8 +38,14 @@ class SaleService
                     throw new \RuntimeException("Insufficient stock for product: {$product->name}");
                 }
 
-                $discountPercent = min(max((float) ($item['discount_percent'] ?? 0), 0), 100);
-                $discountedPrice = round($product->selling_price * (1 - $discountPercent / 100), 2);
+                if (isset($item['discount_amount']) && (float) $item['discount_amount'] > 0) {
+                    $discAmt = (float) $item['discount_amount'];
+                    $discountedPrice = max(round($product->selling_price - $discAmt, 2), 0);
+                    $discountPercent = $product->selling_price > 0 ? round(($discAmt / $product->selling_price) * 100, 2) : 0;
+                } else {
+                    $discountPercent = min(max((float) ($item['discount_percent'] ?? 0), 0), 100);
+                    $discountedPrice = round($product->selling_price * (1 - $discountPercent / 100), 2);
+                }
                 $lineTotal = $discountedPrice * $item['quantity'];
                 $subtotal += $lineTotal;
 
@@ -71,6 +77,7 @@ class SaleService
                 'customer_id' => $data['customer_id'],
                 'user_id' => $data['user_id'],
                 'payment_type' => $paymentType,
+                'payment_reference' => $data['payment_reference'] ?? null,
                 'subtotal' => $subtotal,
                 'total_amount' => $totalAmount,
                 'paid_amount' => $paidAmount,

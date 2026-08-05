@@ -31,6 +31,8 @@ const Map<String, Map<String, String>> _receiptStrings = {
     'total': 'TOTAL',
     'cash': 'Cash',
     'credit': 'Credit',
+    'cheque': 'Cheque',
+    'reference': 'Reference',
     'credit_settlement': 'Credit Settlement',
   },
   'si': {
@@ -44,9 +46,11 @@ const Map<String, Map<String, String>> _receiptStrings = {
     'price': 'අපේ මිල',
     'qty': 'ප්‍රමාණය',
     'amount': 'එකතුව',
-    'total': 'එකතුව',
+    'total': 'මුළු මුදල',
     'cash': 'මුදල්',
     'credit': 'ණය',
+    'cheque': 'චෙක්පත්',
+    'reference': 'යොමුව',
     'credit_settlement': 'ණය පියවීම',
   },
 };
@@ -113,12 +117,18 @@ class ReceiptWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
-            child: Image.network(
-              ApiClient.logoUrl,
+            child: Image.asset(
+              'assets/images/logo.png',
               width: 64 * _scale,
               height: 64 * _scale,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              errorBuilder: (context, error, stackTrace) => Image.network(
+                ApiClient.logoUrl,
+                width: 64 * _scale,
+                height: 64 * _scale,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
             ),
           ),
           SizedBox(height: 6 * _scale),
@@ -153,6 +163,8 @@ class ReceiptWidget extends StatelessWidget {
           _kv(t['invoice']!, receipt.invoiceNumber),
           _kv(t['date']!, dateFmt.format(receipt.date)),
           _kv(t['payment']!, _paymentLabel(receipt.paymentType)),
+          if (receipt.paymentReference != null && receipt.paymentReference!.isNotEmpty)
+            _kv(t['reference'] ?? 'Reference', receipt.paymentReference!),
           if (receipt.customerName != null) _kv(t['customer']!, receipt.customerName!),
           if (receipt.customerPhone != null) _kv(t['phone']!, receipt.customerPhone!),
           _kv(t['cashier']!, receipt.cashierName),

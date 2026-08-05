@@ -77,6 +77,30 @@
             </div>
 
             <div class="bg-surface border border-line shadow-sm rounded-lg overflow-hidden">
+                <h3 class="font-semibold text-ink text-sm px-4 pt-4">Payment Method Breakdown</h3>
+                <table class="w-full text-sm mt-3">
+                    <thead class="bg-line-soft">
+                        <tr class="text-left text-ink-soft">
+                            <th class="px-4 py-3">Method</th>
+                            <th class="px-4 py-3 text-right">No. of Sales</th>
+                            <th class="px-4 py-3 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($paymentBreakdown as $row)
+                            <tr class="border-t border-line">
+                                <td class="px-4 py-3 font-medium text-ink">{{ \Illuminate\Support\Str::headline($row['method']) }}</td>
+                                <td class="px-4 py-3 text-right">{{ $row['count'] }}</td>
+                                <td class="px-4 py-3 text-right font-medium">Rs. {{ number_format($row['total'], 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="3" class="px-4 py-8 text-center text-ink-soft">No sales in this range.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-surface border border-line shadow-sm rounded-lg overflow-hidden">
                 <h3 class="font-semibold text-ink text-sm px-4 pt-4">Sales</h3>
                 <table class="w-full text-sm mt-3">
                     <thead class="bg-line-soft">

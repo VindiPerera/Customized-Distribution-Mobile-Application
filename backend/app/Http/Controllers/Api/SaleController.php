@@ -24,13 +24,15 @@ class SaleController extends Controller
     {
         $data = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
-            'payment_type' => ['required', 'in:cash,credit'],
+            'payment_type' => ['required', 'in:cash,credit,cheque'],
+            'payment_reference' => ['nullable', 'string', 'max:255'],
             'paid_amount' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $data['user_id'] = $request->user()->id;

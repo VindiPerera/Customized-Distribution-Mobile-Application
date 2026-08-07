@@ -16,12 +16,25 @@ class InvoiceNumberService
     {
         $row = DB::table('invoice_sequences')->lockForUpdate()->first();
 
-        $number = $row->next_number;
+        $number = $row ? (int) $row->next_number : 1;
 
-        DB::table('invoice_sequences')->where('id', $row->id)->update([
-            'next_number' => $number + 1,
-            'updated_at' => now(),
-        ]);
+        // Ensure we skip any existing invoice numbers to prevent collisions
+        while (DB::table('sales')->where('invoice_number', (string) $number)->exists()) {
+            $number++;
+        }
+
+        if ($row) {
+            DB::table('invoice_sequences')->where('id', $row->id)->update([
+                'next_number' => $number + 1,
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('invoice_sequences')->insert([
+                'next_number' => $number + 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return (string) $number;
     }

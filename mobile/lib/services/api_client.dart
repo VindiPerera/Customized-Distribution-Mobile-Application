@@ -14,7 +14,7 @@ class ApiException implements Exception {
 
 class ApiClient {
   static const String baseUrl = 'https://damsas-creations.jaan.lk/api';
-  static const String logoUrl = 'https://damsas-creations.jaan.lk/logo/logo.jpeg';
+  static const String logoUrl = 'https://damsas-creations.jaan.lk/logo/logo.png';
 
   static const _tokenKey = 'auth_token';
 

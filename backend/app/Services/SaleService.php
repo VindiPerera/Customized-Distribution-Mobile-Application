@@ -23,7 +23,8 @@ class SaleService
      * A customer is always required: bills are always issued to a named
      * customer, never anonymously.
      *
-     * $items: array of ['product_id' => int, 'quantity' => int, 'discount_percent' => float|null]
+     * $items: array of ['product_id' => int, 'quantity' => int, 'discount_type' => 'percent'|'amount'|null,
+     *                    'discount_percent' => float|null, 'discount_amount' => float|null]
      */
     public function createSale(array $data, array $items): Sale
     {
@@ -38,22 +39,29 @@ class SaleService
                     throw new \RuntimeException("Insufficient stock for product: {$product->name}");
                 }
 
-                if (isset($item['discount_amount']) && (float) $item['discount_amount'] > 0) {
-                    $discAmt = (float) $item['discount_amount'];
-                    $discountedPrice = max(round($product->selling_price - $discAmt, 2), 0);
-                    $discountPercent = $product->selling_price > 0 ? round(($discAmt / $product->selling_price) * 100, 2) : 0;
+                $unitPrice = (float) $product->selling_price;
+                $discountType = ($item['discount_type'] ?? 'percent') === 'amount' ? 'amount' : 'percent';
+
+                if ($discountType === 'amount') {
+                    $discountAmount = min(max((float) ($item['discount_amount'] ?? 0), 0), $unitPrice);
+                    $discountPercent = 0;
+                    $discountedPrice = round($unitPrice - $discountAmount, 2);
                 } else {
                     $discountPercent = min(max((float) ($item['discount_percent'] ?? 0), 0), 100);
-                    $discountedPrice = round($product->selling_price * (1 - $discountPercent / 100), 2);
+                    $discountAmount = 0;
+                    $discountedPrice = round($unitPrice * (1 - $discountPercent / 100), 2);
                 }
+
                 $lineTotal = $discountedPrice * $item['quantity'];
                 $subtotal += $lineTotal;
 
                 $lineItems[] = [
                     'product' => $product,
                     'quantity' => $item['quantity'],
-                    'unit_price' => $product->selling_price,
+                    'unit_price' => $unitPrice,
+                    'discount_type' => $discountType,
                     'discount_percent' => $discountPercent,
+                    'discount_amount' => $discountAmount,
                     'discounted_price' => $discountedPrice,
                     'line_total' => $lineTotal,
                 ];
@@ -90,7 +98,9 @@ class SaleService
                     'product_id' => $line['product']->id,
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
+                    'discount_type' => $line['discount_type'],
                     'discount_percent' => $line['discount_percent'],
+                    'discount_amount' => $line['discount_amount'],
                     'discounted_price' => $line['discounted_price'],
                     'line_total' => $line['line_total'],
                 ]);

@@ -44,7 +44,9 @@ class SaleController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.discount_type' => ['nullable', 'in:percent,amount'],
             'items.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $data['user_id'] = $request->user()->id;

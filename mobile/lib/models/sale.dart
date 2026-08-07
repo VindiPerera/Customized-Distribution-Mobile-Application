@@ -1,14 +1,27 @@
 class SaleItemInput {
   final int productId;
   final int quantity;
-  final double discountPercent;
 
-  SaleItemInput({required this.productId, required this.quantity, this.discountPercent = 0});
+  /// 'percent' or 'amount' — which of [discountPercent]/[discountAmount] the
+  /// backend should actually apply (the other is sent as 0).
+  final String discountType;
+  final double discountPercent;
+  final double discountAmount;
+
+  SaleItemInput({
+    required this.productId,
+    required this.quantity,
+    this.discountType = 'percent',
+    this.discountPercent = 0,
+    this.discountAmount = 0,
+  });
 
   Map<String, dynamic> toJson() => {
         'product_id': productId,
         'quantity': quantity,
+        'discount_type': discountType,
         'discount_percent': discountPercent,
+        'discount_amount': discountAmount,
       };
 }
 

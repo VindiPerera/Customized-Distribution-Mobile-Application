@@ -82,7 +82,7 @@
                         <thead>
                             <tr class="text-left text-ink-soft border-b border-line">
                                 <th class="py-2">Product</th>
-                                <th class="w-36 text-right">Discount</th>
+                                <th class="w-40 text-right">Discount</th>
                                 <th class="w-28 text-right">Price</th>
                                 <th class="w-20">Qty</th>
                                 <th class="text-right">Total</th>
@@ -99,13 +99,15 @@
                                     </td>
                                     <td>
                                         <div class="flex items-center justify-end gap-1">
-                                            <input type="number" min="0" step="0.01" x-model.number="line.discountValue" class="w-20 border-line rounded-md shadow-sm text-sm text-right focus:border-accent focus:ring-accent">
-                                            <select x-model="line.discountType" class="py-1.5 px-1.5 text-xs border-line rounded-md focus:border-accent focus:ring-accent font-medium">
+                                            <input type="number" min="0" :max="line.discountType === 'percent' ? 100 : line.price" step="0.01" x-model.number="line.discountValue" class="w-20 border-line rounded-md shadow-sm text-sm text-right focus:border-accent focus:ring-accent">
+                                            <select x-model="line.discountType" class="border-line rounded-md shadow-sm text-xs focus:border-accent focus:ring-accent">
                                                 <option value="percent">%</option>
-                                                <option value="amount">Rs</option>
+                                                <option value="amount">Rs.</option>
                                             </select>
-                                            <input type="hidden" :name="'items['+index+'][discount_percent]'" :value="lineDiscountPercent(line)">
                                         </div>
+                                        <input type="hidden" :name="'items['+index+'][discount_type]'" :value="line.discountType">
+                                        <input type="hidden" :name="'items['+index+'][discount_percent]'" :value="line.discountType === 'percent' ? line.discountValue : 0">
+                                        <input type="hidden" :name="'items['+index+'][discount_amount]'" :value="line.discountType === 'amount' ? line.discountValue : 0">
                                     </td>
                                     <td class="text-right" x-text="'Rs. ' + discountedPrice(line).toFixed(2)"></td>
                                     <td>
@@ -159,23 +161,12 @@
                 paymentType: 'cash',
                 customerId: '',
                 errorMsg: '',
-                lineDiscountPercent(line) {
-                    const val = Number(line.discountValue) || 0;
-                    if (line.discountType === 'percent') {
-                        return Math.min(Math.max(val, 0), 100);
-                    } else {
-                        if (!line.price) return 0;
-                        return Math.min(Math.max((val / line.price) * 100, 0), 100);
-                    }
-                },
                 discountedPrice(line) {
-                    const val = Number(line.discountValue) || 0;
-                    if (line.discountType === 'percent') {
-                        const pct = Math.min(Math.max(val, 0), 100);
-                        return line.price * (1 - pct / 100);
-                    } else {
-                        return Math.max(line.price - val, 0);
+                    const value = Number(line.discountValue) || 0;
+                    if (line.discountType === 'amount') {
+                        return line.price - Math.min(Math.max(value, 0), line.price);
                     }
+                    return line.price * (1 - Math.min(Math.max(value, 0), 100) / 100);
                 },
                 get total() {
                     return this.cart.reduce((sum, l) => sum + this.discountedPrice(l) * l.qty, 0);
@@ -187,7 +178,7 @@
                     if (existing) {
                         existing.qty++;
                     } else {
-                        this.cart.push({ id: product.id, name: product.name, price: product.price, qty: 1, discountPercent: 0 });
+                        this.cart.push({ id: product.id, name: product.name, price: product.price, qty: 1, discountType: 'percent', discountValue: 0 });
                     }
                 },
                 validate() {

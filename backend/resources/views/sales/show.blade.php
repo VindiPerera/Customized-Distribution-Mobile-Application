@@ -51,7 +51,9 @@
                                     {{ $item->product->name }}
                                     <div class="text-xs text-ink-soft">
                                         Rs. {{ number_format($item->unit_price, 2) }} each
-                                        @if ($item->discount_percent > 0)
+                                        @if ($item->discount_type === 'amount' && $item->discount_amount > 0)
+                                            &middot; Rs. {{ number_format($item->discount_amount, 2) }} off
+                                        @elseif ($item->discount_percent > 0)
                                             &middot; {{ rtrim(rtrim(number_format($item->discount_percent, 2), '0'), '.') }}% off
                                         @endif
                                     </div>

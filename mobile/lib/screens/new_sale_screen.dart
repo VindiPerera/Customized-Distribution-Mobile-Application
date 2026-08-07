@@ -634,112 +634,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             ),
           ),
         ),
-        Expanded(
-          child: _products.isEmpty
-              ? const Center(
-                  child: Text('No products available.', style: TextStyle(color: AppColors.inkSoft)),
-                )
-              : _filteredProducts.isEmpty
-                  ? const Center(
-                      child: Text('No products match your search.', style: TextStyle(color: AppColors.inkSoft)),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-                      itemCount: _filteredProducts.length,
-                      separatorBuilder: (context, i) => const SizedBox(height: 8),
-                      itemBuilder: (context, i) {
-                        final p = _filteredProducts[i];
-                        final inCart = _cart.containsKey(p.id);
-                        final lowStock = p.stockQuantity <= 0;
-
-                        return Card(
-                          color: inCart ? AppColors.accentSoft : AppColors.surface,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(14),
-                            onTap: lowStock ? null : () => _addToCart(p),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: p.imageUrl != null
-                                        ? Image.network(
-                                            p.imageUrl!,
-                                            width: 44,
-                                            height: 44,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => _productPlaceholder(),
-                                          )
-                                        : _productPlaceholder(),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          p.name,
-                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.ink),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          'Rs. ${p.sellingPrice.toStringAsFixed(2)}  ·  Stock: ${p.stockQuantity}',
-                                          style: TextStyle(
-                                            fontSize: 12.5,
-                                            color: lowStock ? AppColors.critical : AppColors.inkSoft,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (inCart) ...[
-                                    _QtyStepper(
-                                      quantity: _cart[p.id]!.quantity,
-                                      onDecrement: () => _updateQuantity(p.id, -1),
-                                      onIncrement: () => _updateQuantity(p.id, 1),
-                                    ),
-                                  ] else
-                                    Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        color: lowStock ? AppColors.lineSoft : AppColors.accent,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: IconButton(
-                                        padding: EdgeInsets.zero,
-                                        icon: Icon(
-                                          Icons.add_rounded,
-                                          size: 20,
-                                          color: lowStock ? AppColors.inkSoft : Colors.white,
-                                        ),
-                                        onPressed: lowStock ? null : () => _addToCart(p),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-        ),
-        if (_itemCount > 0)
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: SizedBox(
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: _openCheckout,
-                  icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 20),
-                  label: Text('View Cart · $_itemCount item${_itemCount == 1 ? '' : 's'} · Rs. ${_total.toStringAsFixed(2)}'),
-                ),
-              ),
-            ),
-          ),
           if (_productCategories.isNotEmpty) ...[
             const SizedBox(height: 10),
             SizedBox(
@@ -857,6 +751,21 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     },
                   ),
           ),
+          if (_itemCount > 0)
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _openCheckout,
+                    icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 20),
+                    label: Text('View Cart · $_itemCount item${_itemCount == 1 ? '' : 's'} · Rs. ${_total.toStringAsFixed(2)}'),
+                  ),
+                ),
+              ),
+            ),
         ],
     );
   }

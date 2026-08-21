@@ -21,9 +21,14 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
 
   late final CustomerService _customerService;
   List<CustomerCategory> _categories = [];
-  CustomerCategory? _selectedCategory;
+  CustomerCategory? _selectedTopLevel;
+  CustomerCategory? _selectedSubcategory;
   bool _isSubmitting = false;
   String? _error;
+
+  /// The category actually assigned to the customer: the subcategory if one
+  /// was picked, otherwise the top-level category itself.
+  CustomerCategory? get _effectiveCategory => _selectedSubcategory ?? _selectedTopLevel;
 
   @override
   void initState() {
@@ -62,7 +67,7 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
         address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-        categoryId: _selectedCategory?.id,
+        categoryId: _effectiveCategory?.id,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,7 +126,7 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
               if (_categories.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 DropdownButtonFormField<CustomerCategory>(
-                  initialValue: _selectedCategory,
+                  initialValue: _selectedTopLevel,
                   decoration: const InputDecoration(
                     labelText: 'Category (optional)',
                     prefixIcon: Icon(Icons.sell_outlined, size: 20),
@@ -129,8 +134,28 @@ class _NewCustomerScreenState extends State<NewCustomerScreen> {
                   items: _categories
                       .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
                       .toList(),
-                  onChanged: (c) => setState(() => _selectedCategory = c),
+                  onChanged: (c) => setState(() {
+                    _selectedTopLevel = c;
+                    // Switching the top-level category invalidates whatever
+                    // subcategory was picked under the old one.
+                    _selectedSubcategory = null;
+                  }),
                 ),
+                if (_selectedTopLevel != null && _selectedTopLevel!.children.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<CustomerCategory?>(
+                    initialValue: _selectedSubcategory,
+                    decoration: const InputDecoration(
+                      labelText: 'Subcategory (optional)',
+                      prefixIcon: Icon(Icons.subdirectory_arrow_right_rounded, size: 20),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('General (no subcategory)')),
+                      ..._selectedTopLevel!.children.map((sc) => DropdownMenuItem(value: sc, child: Text(sc.name))),
+                    ],
+                    onChanged: (c) => setState(() => _selectedSubcategory = c),
+                  ),
+                ],
               ],
               if (_error != null) ...[
                 const SizedBox(height: 16),

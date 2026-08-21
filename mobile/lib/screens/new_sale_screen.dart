@@ -254,9 +254,15 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
   List<Customer> _filterCustomers(String query, {CustomerCategory? category}) {
     final q = query.trim().toLowerCase();
+    // Matching a top-level category also matches any of its subcategories,
+    // so picking "Retail" (say) surfaces customers assigned directly to
+    // "Retail" as well as ones assigned to "Retail > Wholesale" etc.
+    final matchingIds = category == null
+        ? null
+        : {category.id, ...category.children.map((c) => c.id)};
     return _customers.where((c) {
       final matchesQuery = q.isEmpty || c.name.toLowerCase().contains(q) || (c.phone ?? '').toLowerCase().contains(q);
-      final matchesCategory = category == null || c.categoryId == category.id;
+      final matchesCategory = matchingIds == null || matchingIds.contains(c.categoryId);
       return matchesQuery && matchesCategory;
     }).toList();
   }
@@ -274,6 +280,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   Future<void> _pickCustomer() async {
     final searchController = TextEditingController();
     CustomerCategory? sheetCategoryFilter = _categoryFilter;
+    // Narrows further within sheetCategoryFilter's subcategories, if it has
+    // any. Filtering by this (when set) takes over from the top-level one.
+    CustomerCategory? sheetSubcategoryFilter;
     final picked = await showModalBottomSheet<Customer>(
       context: context,
       isScrollControlled: true,
@@ -281,7 +290,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
             final query = searchController.text;
-            final results = _filterCustomers(query, category: sheetCategoryFilter);
+            final results = _filterCustomers(query, category: sheetSubcategoryFilter ?? sheetCategoryFilter);
             return Padding(
               padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
               child: SizedBox(
@@ -333,6 +342,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                               selected: sheetCategoryFilter == null,
                               onTap: () => setSheetState(() {
                                 sheetCategoryFilter = null;
+                                sheetSubcategoryFilter = null;
                                 _categoryFilter = null;
                               }),
                             ),
@@ -343,8 +353,35 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                                 selected: sheetCategoryFilter?.id == cat.id,
                                 onTap: () => setSheetState(() {
                                   sheetCategoryFilter = cat;
+                                  sheetSubcategoryFilter = null;
                                   _categoryFilter = cat;
                                 }),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (sheetCategoryFilter != null && sheetCategoryFilter!.children.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 30,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          children: [
+                            _CategoryChip(
+                              label: 'All ${sheetCategoryFilter!.name}',
+                              selected: sheetSubcategoryFilter == null,
+                              onTap: () => setSheetState(() => sheetSubcategoryFilter = null),
+                            ),
+                            const SizedBox(width: 8),
+                            for (final sub in sheetCategoryFilter!.children) ...[
+                              _CategoryChip(
+                                label: sub.name,
+                                selected: sheetSubcategoryFilter?.id == sub.id,
+                                onTap: () => setSheetState(() => sheetSubcategoryFilter = sub),
                               ),
                               const SizedBox(width: 8),
                             ],

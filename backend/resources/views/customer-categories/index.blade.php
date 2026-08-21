@@ -35,12 +35,17 @@
                     <tbody>
                         @forelse ($categories as $category)
                             <tr class="border-t border-line">
-                                <td class="px-4 py-3 font-medium text-ink">{{ $category->name }}</td>
+                                <td class="px-4 py-3 font-medium text-ink">
+                                    @if ($category->parent)
+                                        <span class="text-ink-soft font-normal">{{ $category->parent->name }} →</span>
+                                    @endif
+                                    {{ $category->name }}
+                                </td>
                                 <td class="px-4 py-3 text-ink-soft">{{ $category->description ?? '—' }}</td>
                                 <td class="px-4 py-3 text-right text-ink-soft">{{ $category->customers_count }}</td>
                                 <td class="px-4 py-3 text-right">
                                     <a href="{{ route('customer-categories.edit', $category) }}" class="text-accent hover:underline">Edit</a>
-                                    @if ($category->customers_count === 0)
+                                    @if ($category->customers_count === 0 && $category->children_count === 0)
                                         <form method="POST" action="{{ route('customer-categories.destroy', $category) }}" class="inline" onsubmit="return confirm('Delete this category?')">
                                             @csrf
                                             @method('DELETE')

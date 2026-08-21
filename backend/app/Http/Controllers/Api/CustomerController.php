@@ -74,7 +74,13 @@ class CustomerController extends Controller
 
     public function ledger(Customer $customer)
     {
-        return $customer->ledgerEntries()->with('reference')->latest()->paginate(30);
+        // Same fix as index() above: the mobile customer detail screen
+        // fetches this once with no pagination UI, so paginate(30) was
+        // silently hiding older ledger entries for any customer with more
+        // than 30.
+        return response()->json([
+            'data' => $customer->ledgerEntries()->with('reference')->latest()->get(),
+        ]);
     }
 
     public function aging(Customer $customer)

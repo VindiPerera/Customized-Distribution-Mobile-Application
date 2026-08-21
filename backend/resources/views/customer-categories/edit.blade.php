@@ -21,6 +21,24 @@
                     <x-input-error :messages="$errors->get('description')" class="mt-1" />
                 </div>
 
+                @if ($category->children_count === 0)
+                    <div>
+                        <x-input-label for="parent_id" value="Parent Category" />
+                        <select id="parent_id" name="parent_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent">
+                            <option value="">None — this is a top-level category</option>
+                            @foreach ($parentOptions as $option)
+                                <option value="{{ $option->id }}" {{ (string) old('parent_id', $category->parent_id) === (string) $option->id ? 'selected' : '' }}>{{ $option->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-ink-soft">Choose a parent to make this a subcategory of it.</p>
+                        <x-input-error :messages="$errors->get('parent_id')" class="mt-1" />
+                    </div>
+                @else
+                    <div class="text-xs text-ink-soft bg-line-soft rounded-md px-3 py-2">
+                        This category has subcategories, so it can't be made a subcategory of another category.
+                    </div>
+                @endif
+
                 <div class="flex items-center">
                     <input type="hidden" name="is_active" value="0">
                     <input type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', $category->is_active) ? 'checked' : '' }} class="rounded border-line text-accent focus:ring-accent">

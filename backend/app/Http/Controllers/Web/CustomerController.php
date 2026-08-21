@@ -31,7 +31,11 @@ class CustomerController extends Controller
 
     public function create()
     {
-        $categories = CustomerCategory::where('is_active', true)->orderBy('name')->get();
+        $categories = CustomerCategory::where('is_active', true)
+            ->whereNull('parent_id')
+            ->with(['children' => fn ($q) => $q->where('is_active', true)->orderBy('name')])
+            ->orderBy('name')
+            ->get();
 
         return view('customers.create', compact('categories'));
     }
@@ -62,7 +66,11 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer)
     {
-        $categories = CustomerCategory::where('is_active', true)->orderBy('name')->get();
+        $categories = CustomerCategory::where('is_active', true)
+            ->whereNull('parent_id')
+            ->with(['children' => fn ($q) => $q->where('is_active', true)->orderBy('name')])
+            ->orderBy('name')
+            ->get();
 
         return view('customers.edit', compact('customer', 'categories'));
     }

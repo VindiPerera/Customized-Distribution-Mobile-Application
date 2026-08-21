@@ -20,6 +20,18 @@
                     <x-input-error :messages="$errors->get('description')" class="mt-1" />
                 </div>
 
+                <div>
+                    <x-input-label for="parent_id" value="Parent Category" />
+                    <select id="parent_id" name="parent_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent">
+                        <option value="">None — this is a top-level category</option>
+                        @foreach ($parentOptions as $option)
+                            <option value="{{ $option->id }}" {{ (string) old('parent_id') === (string) $option->id ? 'selected' : '' }}>{{ $option->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-ink-soft">Choose a parent to make this a subcategory of it.</p>
+                    <x-input-error :messages="$errors->get('parent_id')" class="mt-1" />
+                </div>
+
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('customer-categories.index') }}" class="px-4 py-2 text-sm text-ink-soft">Cancel</a>
                     <x-primary-button>Create Category</x-primary-button>

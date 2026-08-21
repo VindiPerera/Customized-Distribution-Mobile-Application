@@ -30,15 +30,50 @@
                     <textarea id="address" name="address" rows="2" class="mt-1 block w-full border-line rounded-md shadow-sm focus:border-accent focus:ring-accent">{{ old('address', $customer->address) }}</textarea>
                 </div>
 
-                <div>
-                    <x-input-label for="customer_category_id" value="Category" />
-                    <select id="customer_category_id" name="customer_category_id" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent">
-                        <option value="">No category</option>
-                        @foreach ($categories as $category)
-                            <option value="{{ $category->id }}" {{ (string) old('customer_category_id', $customer->customer_category_id) === (string) $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                        @endforeach
-                    </select>
-                    <x-input-error :messages="$errors->get('customer_category_id')" class="mt-1" />
+                @php
+                    // Whichever category is currently selected (old input on
+                    // a failed resubmit, else the customer's saved value)
+                    // might itself be a subcategory — resolve its parent so
+                    // the top-level select shows the right branch.
+                    $displaySelectedId = old('customer_category_id', $customer->customer_category_id);
+                    $displayTopLevelId = $displaySelectedId;
+                    if ($displaySelectedId) {
+                        $displayCategory = \App\Models\CustomerCategory::find($displaySelectedId);
+                        if ($displayCategory?->isSubcategory()) {
+                            $displayTopLevelId = $displayCategory->parent_id;
+                        }
+                    }
+                @endphp
+                <div class="grid grid-cols-2 gap-4"
+                     x-data="categoryPicker({
+                        categories: {{ $categories->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'children' => $c->children->map(fn ($sc) => ['id' => $sc->id, 'name' => $sc->name])->values()])->values()->toJson() }},
+                        initialTopLevelId: {{ $displayTopLevelId ? (int) $displayTopLevelId : 'null' }},
+                        initialSelectedId: {{ $displaySelectedId ? (int) $displaySelectedId : 'null' }},
+                     })">
+                    <div>
+                        <x-input-label for="customer_category_id" value="Category" />
+                        <select id="customer_category_id" x-model.number="topLevelId" @change="onTopLevelChange()" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent">
+                            <option value="">No category</option>
+                            <template x-for="c in categories" :key="c.id">
+                                <option :value="c.id" x-text="c.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div x-show="subcategories.length > 0" x-cloak>
+                        <x-input-label value="Subcategory" />
+                        <select name="customer_category_id" x-model.number="selectedId" class="mt-1 block w-full border-line rounded-md shadow-sm text-sm bg-surface text-ink focus:border-accent focus:ring-accent">
+                            <option :value="topLevelId">General (no subcategory)</option>
+                            <template x-for="sc in subcategories" :key="sc.id">
+                                <option :value="sc.id" x-text="sc.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <template x-if="subcategories.length === 0">
+                        <input type="hidden" name="customer_category_id" :value="topLevelId ?? ''">
+                    </template>
+                    <div class="col-span-2">
+                        <x-input-error :messages="$errors->get('customer_category_id')" class="mt-1" />
+                    </div>
                 </div>
 
                 <div>
@@ -60,4 +95,23 @@
             </form>
         </div>
     </div>
+
+    <script>
+        function categoryPicker({ categories, initialTopLevelId, initialSelectedId }) {
+            return {
+                categories,
+                topLevelId: initialTopLevelId,
+                selectedId: initialSelectedId,
+                get subcategories() {
+                    const top = this.categories.find(c => c.id === this.topLevelId);
+                    return top ? top.children : [];
+                },
+                onTopLevelChange() {
+                    // Switching the top-level category invalidates whatever
+                    // subcategory was picked under the old one.
+                    this.selectedId = this.topLevelId;
+                },
+            };
+        }
+    </script>
 </x-app-layout>

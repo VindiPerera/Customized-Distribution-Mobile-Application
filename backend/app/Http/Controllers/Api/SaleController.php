@@ -15,9 +15,12 @@ class SaleController extends Controller
 
     public function index(Request $request)
     {
-        return Sale::with('customer', 'user')
-            ->latest('sale_date')
-            ->paginate(20);
+        // Same fix as the products/customers endpoints: the mobile sales
+        // history screen has no pagination UI, so paginate(20) was silently
+        // hiding every sale past the most recent 20 from it.
+        return response()->json([
+            'data' => Sale::with('customer', 'user')->latest('sale_date')->get(),
+        ]);
     }
 
     public function store(Request $request)

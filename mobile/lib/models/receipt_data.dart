@@ -61,7 +61,10 @@ class ReceiptData {
   factory ReceiptData.fromSaleDetail(SaleDetail sale) {
     return ReceiptData(
       invoiceNumber: sale.invoiceNumber,
-      date: sale.saleDate,
+      // sale.saleDate comes from the API as UTC — convert to the device's
+      // local time (Sri Lanka) so the printed/displayed receipt shows the
+      // actual wall-clock time the sale happened, not the UTC clock time.
+      date: sale.saleDate.toLocal(),
       lines: sale.items
           .map((i) => ReceiptLine(
                 name: i.productName,

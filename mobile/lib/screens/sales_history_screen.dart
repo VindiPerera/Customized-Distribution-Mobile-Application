@@ -140,7 +140,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  dateFmt.format(s.saleDate),
+                                  dateFmt.format(s.saleDate.toLocal()),
                                   style: const TextStyle(fontSize: 12, color: AppColors.inkSoft),
                                 ),
                               ],

@@ -665,7 +665,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
       final receipt = ReceiptData(
         invoiceNumber: sale.invoiceNumber,
-        date: sale.saleDate,
+        // sale.saleDate is UTC from the API — show the device's local
+        // (Sri Lanka) time on the receipt instead of the raw UTC clock time.
+        date: sale.saleDate.toLocal(),
         lines: _cart.values
             .map((l) => ReceiptLine(
                   name: l.product.name,

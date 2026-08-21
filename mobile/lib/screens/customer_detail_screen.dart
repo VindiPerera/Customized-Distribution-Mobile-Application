@@ -170,7 +170,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           [
-                                            dateFmt.format(e.createdAt),
+                                            dateFmt.format(e.createdAt.toLocal()),
                                             if (e.referenceLabel != null) e.referenceLabel!,
                                           ].join('  ·  '),
                                           style: const TextStyle(fontSize: 12, color: AppColors.inkSoft),

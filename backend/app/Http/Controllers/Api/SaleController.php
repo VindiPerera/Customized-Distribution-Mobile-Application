@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\InvalidReturnException;
 use App\Http\Controllers\Controller;
 use App\Models\Sale;
 use App\Services\SaleService;
@@ -37,17 +38,24 @@ class SaleController extends Controller
             'items.*.discount_type' => ['nullable', 'in:percent,amount'],
             'items.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'returns' => ['nullable', 'array'],
+            'returns.*.sale_item_id' => ['required_with:returns', 'exists:sale_items,id'],
+            'returns.*.quantity' => ['required_with:returns', 'integer', 'min:1'],
         ]);
 
         $data['user_id'] = $request->user()->id;
 
-        $sale = $this->saleService->createSale($data, $data['items']);
+        try {
+            $sale = $this->saleService->createSale($data, $data['items']);
+        } catch (InvalidReturnException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json($sale, 201);
     }
 
     public function show(Sale $sale)
     {
-        return $sale->load('items.product', 'customer', 'user', 'payments');
+        return $sale->load('items.product', 'customer', 'user', 'payments', 'returns.product');
     }
 }

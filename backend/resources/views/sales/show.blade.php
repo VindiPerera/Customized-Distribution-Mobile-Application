@@ -66,8 +66,34 @@
                     </tbody>
                 </table>
 
+                @if ($sale->returns->isNotEmpty())
+                    <div class="mb-6">
+                        <div class="text-sm text-ink-soft mb-2">Returns applied to this bill</div>
+                        <table class="w-full text-sm">
+                            <tbody>
+                                @foreach ($sale->returns as $return)
+                                    <tr class="border-b border-line last:border-0">
+                                        <td class="py-1.5">{{ $return->product->name }} &times; {{ $return->quantity }}</td>
+                                        <td class="py-1.5 text-right text-critical">- Rs. {{ number_format($return->amount, 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
                 <div class="flex justify-end">
                     <div class="w-64 space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-ink-soft">Subtotal</span>
+                            <span>Rs. {{ number_format($sale->subtotal, 2) }}</span>
+                        </div>
+                        @if ($sale->return_amount > 0)
+                            <div class="flex justify-between text-critical">
+                                <span>Returns</span>
+                                <span>- Rs. {{ number_format($sale->return_amount, 2) }}</span>
+                            </div>
+                        @endif
                         <div class="flex justify-between text-lg font-bold border-t border-line pt-1">
                             <span>Total</span>
                             <span>Rs. {{ number_format($sale->total_amount, 2) }}</span>

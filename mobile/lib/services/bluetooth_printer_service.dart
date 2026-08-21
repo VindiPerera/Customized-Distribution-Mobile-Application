@@ -52,6 +52,7 @@ class BluetoothPrinterService {
       receipt.customerName ?? '',
       receipt.cashierName,
       for (final line in receipt.lines) line.name,
+      for (final r in receipt.returns) r.name,
     ];
     return fields.every((s) => s.runes.every((r) => r <= 0xFF));
   }
@@ -304,14 +305,27 @@ class BluetoothPrinterService {
   }
 
   List<int> _buildTotals(Generator generator, ReceiptData receipt) {
-    return generator.row([
+    final bytes = <int>[];
+
+    if (receipt.returns.isNotEmpty) {
+      bytes.addAll(generator.text('Returns:', styles: const PosStyles(bold: true)));
+      for (final r in receipt.returns) {
+        bytes.addAll(_kv(generator, '${r.name} x${r.quantity}', '- Rs. ${r.amount.toStringAsFixed(2)}'));
+      }
+      bytes.addAll(_kv(generator, 'Subtotal', 'Rs. ${receipt.subtotal.toStringAsFixed(2)}'));
+      bytes.addAll(_kv(generator, 'Returns', '- Rs. ${receipt.returnAmount.toStringAsFixed(2)}'));
+    }
+
+    bytes.addAll(generator.row([
       PosColumn(text: 'TOTAL', width: 6, styles: const PosStyles(bold: true, height: PosTextSize.size2)),
       PosColumn(
         text: 'Rs. ${receipt.total.toStringAsFixed(2)}',
         width: 6,
         styles: const PosStyles(align: PosAlign.right, bold: true, height: PosTextSize.size2),
       ),
-    ]);
+    ]));
+
+    return bytes;
   }
 
   List<int> _buildFooter(Generator generator, ShopSettings shop) {

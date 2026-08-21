@@ -25,6 +25,20 @@ class SaleItemInput {
       };
 }
 
+/// A product being returned from an earlier purchase, applied as a credit
+/// against the new sale's total.
+class ReturnInput {
+  final int saleItemId;
+  final int quantity;
+
+  ReturnInput({required this.saleItemId, required this.quantity});
+
+  Map<String, dynamic> toJson() => {
+        'sale_item_id': saleItemId,
+        'quantity': quantity,
+      };
+}
+
 class Sale {
   final int id;
   final String invoiceNumber;

@@ -1,6 +1,7 @@
 import '../models/customer.dart';
 import '../models/customer_category.dart';
 import '../models/customer_ledger_entry.dart';
+import '../models/returnable_sale.dart';
 import 'api_client.dart';
 
 class CustomerService {
@@ -55,5 +56,13 @@ class CustomerService {
     final data = await _api.get('/customers/$customerId/ledger');
     final items = data['data'] as List;
     return items.map((e) => CustomerLedgerEntry.fromJson(e)).toList();
+  }
+
+  /// Past sales of this customer's that still have line items left to
+  /// return — feeds the "Return a product" picker at checkout.
+  Future<List<ReturnableSale>> returnableItems(int customerId) async {
+    final data = await _api.get('/customers/$customerId/returnable-items');
+    final items = data['data'] as List;
+    return items.map((e) => ReturnableSale.fromJson(e)).toList();
   }
 }

@@ -4,6 +4,7 @@ import '../models/customer.dart';
 import '../models/customer_category.dart';
 import '../models/product.dart';
 import '../models/receipt_data.dart';
+import '../models/returnable_sale.dart';
 import '../models/sale.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
@@ -110,6 +111,13 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   CustomerCategory? _categoryFilter;
   final Map<int, _CartLine> _cart = {};
 
+  // Products the selected customer bought earlier and can still return.
+  // Keyed by sale_item_id -> how many of that line the cashier has picked
+  // to return on this bill (0 < qty <= that item's returnableQuantity).
+  List<ReturnableSale> _returnableSales = [];
+  final Map<int, int> _selectedReturns = {};
+  bool _isLoadingReturns = false;
+
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   int? _productCategoryFilter;
@@ -207,7 +215,59 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   double get _subtotal => _isSettlement ? _settlementAmount : _cart.values.fold(0, (sum, line) => sum + line.lineTotal);
   int get _itemCount => _isSettlement ? (_settlementAmount > 0 ? 1 : 0) : _cart.values.fold(0, (sum, line) => sum + line.quantity);
 
-  double get _total => _subtotal;
+  /// All returnable items across every one of the customer's past sales,
+  /// flattened, keyed by sale_item_id — convenient for looking up a
+  /// selected return's unit price/product name without re-searching
+  /// _returnableSales every time.
+  Map<int, ReturnableItem> get _returnableItemsById {
+    final map = <int, ReturnableItem>{};
+    for (final sale in _returnableSales) {
+      for (final item in sale.items) {
+        map[item.saleItemId] = item;
+      }
+    }
+    return map;
+  }
+
+  double get _returnsTotal {
+    if (_selectedReturns.isEmpty) return 0;
+    final byId = _returnableItemsById;
+    return _selectedReturns.entries.fold(0.0, (sum, e) {
+      final item = byId[e.key];
+      if (item == null) return sum;
+      return sum + item.unitPrice * e.value;
+    });
+  }
+
+  /// Product being returned from an earlier purchase gets its price
+  /// deducted straight off this bill's total.
+  double get _total => (_subtotal - _returnsTotal).clamp(0, double.infinity);
+
+  Future<void> _loadReturnableItems(int customerId) async {
+    setState(() {
+      _isLoadingReturns = true;
+      _returnableSales = [];
+      _selectedReturns.clear();
+    });
+    try {
+      final sales = await _customerService.returnableItems(customerId);
+      if (mounted) setState(() => _returnableSales = sales);
+    } catch (_) {
+      // Returns are optional at checkout — skip silently if unavailable.
+    } finally {
+      if (mounted) setState(() => _isLoadingReturns = false);
+    }
+  }
+
+  void _setReturnQuantity(ReturnableItem item, int quantity) {
+    setState(() {
+      if (quantity <= 0) {
+        _selectedReturns.remove(item.saleItemId);
+      } else {
+        _selectedReturns[item.saleItemId] = quantity > item.returnableQuantity ? item.returnableQuantity : quantity;
+      }
+    });
+  }
 
   /// Credit sales are never paid up front (the whole total becomes the
   /// customer's balance). Cash sales are normally paid in full, but the
@@ -428,7 +488,113 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     searchController.dispose();
     if (picked != null) {
       setState(() => _selectedCustomer = picked);
+      _loadReturnableItems(picked.id);
     }
+  }
+
+  /// Bottom sheet listing the selected customer's past sales and, under
+  /// each, the line items that still have quantity left to return. Picking
+  /// a quantity for an item adds/updates it in [_selectedReturns].
+  Future<void> _pickReturnItem(BuildContext context) async {
+    if (_returnableSales.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This customer has no past purchases available to return.')),
+      );
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+              child: SizedBox(
+                height: MediaQuery.of(sheetContext).size.height * 0.75,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text('Return a Product', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.ink)),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.pop(sheetContext),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        itemCount: _returnableSales.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                        itemBuilder: (context, i) {
+                          final sale = _returnableSales[i];
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Invoice ${sale.invoiceNumber}',
+                                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.inkSoft),
+                              ),
+                              const SizedBox(height: 6),
+                              ...sale.items.map((item) {
+                                final selectedQty = _selectedReturns[item.saleItemId] ?? 0;
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'Rs. ${item.unitPrice.toStringAsFixed(2)} each  ·  ${item.returnableQuantity} returnable',
+                                                style: const TextStyle(fontSize: 12, color: AppColors.inkSoft),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        _QtyStepper(
+                                          quantity: selectedQty,
+                                          onDecrement: () {
+                                            _setReturnQuantity(item, selectedQty - 1);
+                                            setSheetState(() {});
+                                          },
+                                          onIncrement: () {
+                                            if (selectedQty >= item.returnableQuantity) return;
+                                            _setReturnQuantity(item, selectedQty + 1);
+                                            setSheetState(() {});
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _openSettleCredit(Customer customer) async {
@@ -488,10 +654,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                   discountAmount: l.discountAmount,
                 ))
             .toList(),
+        returns: _selectedReturns.entries
+            .map((e) => ReturnInput(saleItemId: e.key, quantity: e.value))
+            .toList(),
       );
       if (!mounted) return;
       final sale = Sale.fromJson(result);
       final cashierName = context.read<AuthProvider>().currentUser?['name'] as String? ?? '-';
+      final returnsById = _returnableItemsById;
 
       final receipt = ReceiptData(
         invoiceNumber: sale.invoiceNumber,
@@ -506,6 +676,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 ))
             .toList(),
         subtotal: _subtotal,
+        returns: _selectedReturns.entries
+            .where((e) => returnsById.containsKey(e.key))
+            .map((e) => ReceiptReturn(
+                  name: returnsById[e.key]!.productName,
+                  quantity: e.value,
+                  amount: returnsById[e.key]!.unitPrice * e.value,
+                ))
+            .toList(),
         total: _total,
         paymentType: _paymentType,
         customerName: _selectedCustomer?.name,
@@ -1040,6 +1218,61 @@ class _CheckoutScreenState extends State<_CheckoutScreen> {
                         )),
                     const Divider(height: 20),
                   ],
+                  if (s._selectedCustomer != null) ...[
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text('Return a Product', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.ink)),
+                        ),
+                        TextButton.icon(
+                          onPressed: s._isLoadingReturns
+                              ? null
+                              : () async {
+                                  await s._pickReturnItem(context);
+                                  refresh();
+                                },
+                          icon: const Icon(Icons.assignment_return_outlined, size: 16),
+                          label: const Text('Add'),
+                          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
+                        ),
+                      ],
+                    ),
+                    if (s._selectedReturns.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      ...s._selectedReturns.entries.map((entry) {
+                        final item = s._returnableItemsById[entry.key];
+                        if (item == null) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${item.productName} x${entry.value}',
+                                  style: const TextStyle(fontSize: 13, color: AppColors.ink),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                '- Rs. ${(item.unitPrice * entry.value).toStringAsFixed(2)}',
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.critical),
+                              ),
+                              IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.critical),
+                                onPressed: () {
+                                  s._setReturnQuantity(item, 0);
+                                  refresh();
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                    const Divider(height: 20),
+                  ],
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: SegmentedButton<String>(
@@ -1152,6 +1385,30 @@ class _CheckoutScreenState extends State<_CheckoutScreen> {
                     ),
                   ],
                   const SizedBox(height: 10),
+                  if (s._selectedReturns.isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Subtotal', style: TextStyle(fontSize: 13, color: AppColors.inkSoft)),
+                        Text(
+                          'Rs. ${s._subtotal.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 13, color: AppColors.inkSoft),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Returns', style: TextStyle(fontSize: 13, color: AppColors.critical)),
+                        Text(
+                          '- Rs. ${s._returnsTotal.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 13, color: AppColors.critical),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

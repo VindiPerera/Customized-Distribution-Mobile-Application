@@ -16,11 +16,25 @@ class ReceiptLine {
   });
 }
 
+/// A returned product credited against this bill's total.
+class ReceiptReturn {
+  final String name;
+  final int quantity;
+  final double amount;
+
+  ReceiptReturn({
+    required this.name,
+    required this.quantity,
+    required this.amount,
+  });
+}
+
 class ReceiptData {
   final String invoiceNumber;
   final DateTime date;
   final List<ReceiptLine> lines;
   final double subtotal;
+  final List<ReceiptReturn> returns;
   final double total;
   final String paymentType;
   final String? paymentReference;
@@ -33,6 +47,7 @@ class ReceiptData {
     required this.date,
     required this.lines,
     required this.subtotal,
+    this.returns = const [],
     required this.total,
     required this.paymentType,
     this.paymentReference,
@@ -40,6 +55,8 @@ class ReceiptData {
     this.customerPhone,
     required this.cashierName,
   });
+
+  double get returnAmount => returns.fold(0, (sum, r) => sum + r.amount);
 
   factory ReceiptData.fromSaleDetail(SaleDetail sale) {
     return ReceiptData(
@@ -55,6 +72,9 @@ class ReceiptData {
               ))
           .toList(),
       subtotal: sale.subtotal,
+      returns: sale.returns
+          .map((r) => ReceiptReturn(name: r.productName, quantity: r.quantity, amount: r.amount))
+          .toList(),
       total: sale.totalAmount,
       paymentType: sale.paymentType,
       paymentReference: sale.paymentReference,

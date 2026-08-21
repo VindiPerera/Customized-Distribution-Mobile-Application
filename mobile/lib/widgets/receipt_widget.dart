@@ -29,6 +29,8 @@ const Map<String, Map<String, String>> _receiptStrings = {
     'qty': 'Qty',
     'amount': 'Total',
     'total': 'TOTAL',
+    'subtotal': 'Subtotal',
+    'returns': 'Returns',
     'cash': 'Cash',
     'credit': 'Credit',
     'cheque': 'Cheque',
@@ -47,6 +49,8 @@ const Map<String, Map<String, String>> _receiptStrings = {
     'qty': 'ප්‍රමාණය',
     'amount': 'එකතුව',
     'total': 'මුළු මුදල',
+    'subtotal': 'උප එකතුව',
+    'returns': 'ආපසු භාණ්ඩ',
     'cash': 'මුදල්',
     'credit': 'ණය',
     'cheque': 'චෙක්පත්',
@@ -206,6 +210,29 @@ class ReceiptWidget extends StatelessWidget {
           SizedBox(height: 4 * _scale),
           const _DashedDivider(),
           SizedBox(height: 8 * _scale),
+          if (receipt.returns.isNotEmpty) ...[
+            Text('${t['returns']!}:', style: mono.copyWith(fontSize: 14 * _scale, fontWeight: FontWeight.w800)),
+            SizedBox(height: 2 * _scale),
+            for (final r in receipt.returns)
+              Padding(
+                padding: EdgeInsets.only(bottom: 2 * _scale),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text('${r.name} x${r.quantity}', style: mono.copyWith(fontSize: 13.5 * _scale)),
+                    ),
+                    Text(
+                      '- Rs. ${r.amount.toStringAsFixed(2)}',
+                      style: mono.copyWith(fontSize: 13.5 * _scale),
+                    ),
+                  ],
+                ),
+              ),
+            SizedBox(height: 6 * _scale),
+            _kv(t['subtotal']!, 'Rs. ${receipt.subtotal.toStringAsFixed(2)}'),
+            _kv(t['returns']!, '- Rs. ${receipt.returnAmount.toStringAsFixed(2)}'),
+            SizedBox(height: 4 * _scale),
+          ],
           Row(
             children: [
               Text(t['total']!, style: mono.copyWith(fontSize: 20 * _scale, fontWeight: FontWeight.w900)),

@@ -15,6 +15,7 @@ class Sale extends Model
         'payment_type',
         'payment_reference',
         'subtotal',
+        'return_amount',
         'total_amount',
         'paid_amount',
         'status',
@@ -26,6 +27,7 @@ class Sale extends Model
     {
         return [
             'subtotal' => 'decimal:2',
+            'return_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'sale_date' => 'datetime',
@@ -50,6 +52,11 @@ class Sale extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(SalePayment::class);
+    }
+
+    public function returns(): HasMany
+    {
+        return $this->hasMany(SaleReturn::class);
     }
 
     public function isCredit(): bool

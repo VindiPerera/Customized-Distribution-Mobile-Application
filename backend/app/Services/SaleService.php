@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Exceptions\InvalidReturnException;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\SaleItem;
+use App\Models\SaleReturn;
 use Illuminate\Support\Facades\DB;
 
 class SaleService
@@ -17,14 +20,16 @@ class SaleService
 
     /**
      * Create a sale (cash or credit) with its line items, deduct stock,
-     * and — for credit sales, or a cash sale that wasn't paid in full —
-     * post the outstanding amount to the customer's ledger.
+     * apply any returned items from earlier purchases as a credit against
+     * this sale's total, and — for credit sales, or a cash sale that wasn't
+     * paid in full — post the outstanding amount to the customer's ledger.
      *
      * A customer is always required: bills are always issued to a named
      * customer, never anonymously.
      *
      * $items: array of ['product_id' => int, 'quantity' => int, 'discount_type' => 'percent'|'amount'|null,
      *                    'discount_percent' => float|null, 'discount_amount' => float|null]
+     * $data['returns']: array of ['sale_item_id' => int, 'quantity' => int]
      */
     public function createSale(array $data, array $items): Sale
     {
@@ -67,8 +72,11 @@ class SaleService
                 ];
             }
 
-            $totalAmount = $subtotal;
+            $returnLines = $this->prepareReturns($data['returns'] ?? [], $data['customer_id']);
+            $returnAmount = array_sum(array_column($returnLines, 'amount'));
+
             $paymentType = $data['payment_type'];
+            $totalAmount = max($subtotal - $returnAmount, 0);
 
             // Credit sales are paid 0 up front. Cash sales are normally paid
             // in full, but the cashier may report a partial "paid_amount"
@@ -87,6 +95,7 @@ class SaleService
                 'payment_type' => $paymentType,
                 'payment_reference' => $data['payment_reference'] ?? null,
                 'subtotal' => $subtotal,
+                'return_amount' => $returnAmount,
                 'total_amount' => $totalAmount,
                 'paid_amount' => $paidAmount,
                 'sale_date' => now(),
@@ -119,12 +128,99 @@ class SaleService
                 $line['product']->update(['stock_quantity' => $newStock]);
             }
 
+            $this->applyReturns($sale, $returnLines, $data['user_id']);
+
             if ($balanceDue > 0) {
                 $customer = Customer::findOrFail($data['customer_id']);
                 $this->creditService->recordSaleOnCredit($customer, $sale, $balanceDue);
             }
 
-            return $sale->load('items.product', 'customer');
+            return $sale->load('items.product', 'customer', 'returns.product');
         });
+    }
+
+    /**
+     * Validates each requested return against how much of that original
+     * sale item is still returnable (its quantity minus whatever was
+     * already returned against it in earlier sales), and resolves the
+     * refund amount at the price the customer actually paid for it.
+     *
+     * $returns: array of ['sale_item_id' => int, 'quantity' => int]
+     *
+     * @return array<int, array{originalItem: SaleItem, quantity: int, unitPrice: float, amount: float}>
+     */
+    private function prepareReturns(array $returns, int $customerId): array
+    {
+        $lines = [];
+
+        foreach ($returns as $return) {
+            $quantity = (int) ($return['quantity'] ?? 0);
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $originalItem = SaleItem::with('sale', 'product')
+                ->whereKey($return['sale_item_id'])
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // A return can only be made against that same customer's own
+            // past purchase — never someone else's sale.
+            if ((int) $originalItem->sale->customer_id !== $customerId) {
+                throw InvalidReturnException::notOwnedByCustomer($originalItem->product->name);
+            }
+
+            $alreadyReturned = (int) SaleReturn::where('original_sale_item_id', $originalItem->id)->sum('quantity');
+            $returnable = $originalItem->quantity - $alreadyReturned;
+
+            if ($quantity > $returnable) {
+                throw InvalidReturnException::tooMany($originalItem->product->name, $quantity, max($returnable, 0));
+            }
+
+            $unitPrice = (float) $originalItem->discounted_price;
+
+            $lines[] = [
+                'originalItem' => $originalItem,
+                'quantity' => $quantity,
+                'unitPrice' => $unitPrice,
+                'amount' => round($unitPrice * $quantity, 2),
+            ];
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Records each prepared return against the new sale and puts the
+     * returned quantity back into stock.
+     */
+    private function applyReturns(Sale $sale, array $returnLines, int $userId): void
+    {
+        foreach ($returnLines as $line) {
+            $originalItem = $line['originalItem'];
+            $product = $originalItem->product;
+
+            $sale->returns()->create([
+                'original_sale_item_id' => $originalItem->id,
+                'product_id' => $product->id,
+                'quantity' => $line['quantity'],
+                'unit_price' => $line['unitPrice'],
+                'amount' => $line['amount'],
+            ]);
+
+            $freshProduct = Product::whereKey($product->id)->lockForUpdate()->first();
+            $newStock = $freshProduct->stock_quantity + $line['quantity'];
+
+            $freshProduct->stockMovements()->create([
+                'type' => 'return_in',
+                'quantity' => $line['quantity'],
+                'quantity_after' => $newStock,
+                'reference_type' => Sale::class,
+                'reference_id' => $sale->id,
+                'user_id' => $userId,
+            ]);
+
+            $freshProduct->update(['stock_quantity' => $newStock]);
+        }
     }
 }

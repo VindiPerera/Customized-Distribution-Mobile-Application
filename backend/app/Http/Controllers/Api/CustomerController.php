@@ -87,4 +87,43 @@ class CustomerController extends Controller
     {
         return response()->json($this->creditService->agingSummary($customer));
     }
+
+    /**
+     * Line items from this customer's past sales that still have some
+     * quantity left to return (purchased quantity minus whatever was
+     * already returned against that same line item in a later sale) —
+     * feeds the "return a product" picker on the New Sale / Checkout screen.
+     * Sales with nothing left to return are omitted entirely.
+     */
+    public function returnableItems(Customer $customer)
+    {
+        $sales = $customer->sales()
+            ->with(['items' => fn ($q) => $q->with('product')->withSum('returns', 'quantity')])
+            ->latest('sale_date')
+            ->get();
+
+        $sales = $sales->map(function ($sale) {
+            $returnableItems = $sale->items
+                ->map(fn ($item) => [
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product->name,
+                    'quantity' => $item->quantity,
+                    'returned_quantity' => (int) ($item->returns_sum_quantity ?? 0),
+                    'returnable_quantity' => $item->quantity - (int) ($item->returns_sum_quantity ?? 0),
+                    'unit_price' => $item->discounted_price,
+                ])
+                ->filter(fn ($item) => $item['returnable_quantity'] > 0)
+                ->values();
+
+            return [
+                'id' => $sale->id,
+                'invoice_number' => $sale->invoice_number,
+                'sale_date' => $sale->sale_date,
+                'items' => $returnableItems,
+            ];
+        })->filter(fn ($sale) => $sale['items']->isNotEmpty())->values();
+
+        return response()->json(['data' => $sales]);
+    }
 }

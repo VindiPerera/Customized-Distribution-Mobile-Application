@@ -23,6 +23,7 @@ Route::name('api.')->group(function () {
         Route::apiResource('customers', CustomerController::class);
         Route::get('customers/{customer}/ledger', [CustomerController::class, 'ledger']);
         Route::get('customers/{customer}/aging', [CustomerController::class, 'aging']);
+        Route::get('customers/{customer}/returnable-items', [CustomerController::class, 'returnableItems']);
 
         Route::get('customer-categories', [CustomerCategoryController::class, 'index']);
 

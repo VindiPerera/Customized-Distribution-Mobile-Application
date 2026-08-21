@@ -30,6 +30,7 @@
                         $navItems = [
                             ['route' => 'dashboard', 'active' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'grid'],
                             ['route' => 'sales.index', 'active' => 'sales.*', 'label' => 'Sales', 'icon' => 'receipt'],
+                            ['route' => 'sale-returns.index', 'active' => 'sale-returns.*', 'label' => 'Returns', 'icon' => 'receipt'],
                             ['route' => 'customers.index', 'active' => 'customers.*', 'label' => 'Customers', 'icon' => 'users'],
                             ['route' => 'customer-categories.index', 'active' => 'customer-categories.*', 'label' => 'Customer Categories', 'icon' => 'tag'],
                             ['route' => 'products.index', 'active' => 'products.*', 'label' => 'Products', 'icon' => 'box'],

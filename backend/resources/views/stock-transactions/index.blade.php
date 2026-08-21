@@ -64,7 +64,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-right text-ink-soft">{{ $movement->quantity_after }}</td>
                                 <td class="px-4 py-3 text-ink-soft">
-                                    @if ($movement->type === 'sale_out' && $movement->reference)
+                                    @if (in_array($movement->type, ['sale_out', 'return_in']) && $movement->reference)
                                         <a href="{{ route('sales.show', $movement->reference_id) }}" class="text-accent hover:underline">{{ $movement->reference->invoice_number }}</a>
                                     @else
                                         {{ $movement->notes ?? '—' }}

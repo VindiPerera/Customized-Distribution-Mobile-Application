@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\ReportController;
 use App\Http\Controllers\Web\ReportDashboardController;
 use App\Http\Controllers\Web\SaleController;
+use App\Http\Controllers\Web\SaleReturnController;
 use App\Http\Controllers\Web\ShopSettingController;
 use App\Http\Controllers\Web\StockAdjustmentController;
 use App\Http\Controllers\Web\StockTransactionController;
@@ -28,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::resource('sales', SaleController::class)->only(['index', 'create', 'store', 'show']);
+    Route::get('returns', [SaleReturnController::class, 'index'])->name('sale-returns.index');
 
     Route::resource('customers', CustomerController::class);
     Route::post('customers/{customer}/payments', [CustomerController::class, 'storePayment'])->name('customers.payments.store');

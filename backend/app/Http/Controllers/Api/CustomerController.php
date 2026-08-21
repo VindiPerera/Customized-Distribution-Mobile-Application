@@ -15,10 +15,18 @@ class CustomerController extends Controller
 
     public function index(Request $request)
     {
-        return Customer::with('category')
-            ->when($request->category_id, fn ($q) => $q->where('customer_category_id', $request->category_id))
-            ->orderBy('name')
-            ->paginate(20);
+        // Same fix as the products endpoint: the mobile customer picker
+        // (search/select while billing a sale) needs the full list in one
+        // shot. paginate(20) was silently hiding every customer past page 1
+        // - alphabetically - from both the sale screen and "Add Customer"
+        // flow, which is what customers were reporting as "can't add
+        // customer" (the one they wanted just wasn't in the visible list).
+        return response()->json([
+            'data' => Customer::with('category')
+                ->when($request->category_id, fn ($q) => $q->where('customer_category_id', $request->category_id))
+                ->orderBy('name')
+                ->get(),
+        ]);
     }
 
     public function store(Request $request)

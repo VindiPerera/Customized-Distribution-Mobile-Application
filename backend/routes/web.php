@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('customer-categories', CustomerCategoryController::class)->except(['show']);
 
     Route::resource('products', ProductController::class)->except(['show']);
+    Route::post('products/{product}/restore', [ProductController::class, 'restore'])->name('products.restore');
 
     Route::resource('stock-adjustments', StockAdjustmentController::class)->only(['index', 'create', 'store']);
     Route::get('stock-transactions', [StockTransactionController::class, 'index'])->name('stock-transactions.index');

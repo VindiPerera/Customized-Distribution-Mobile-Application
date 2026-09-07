@@ -19,9 +19,13 @@ class StockMovement extends Model
         'user_id',
     ];
 
+    /**
+     * withTrashed() so history keeps resolving the product even after it's
+     * been soft-deleted from active listings.
+     */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function user(): BelongsTo

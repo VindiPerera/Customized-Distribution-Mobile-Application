@@ -36,9 +36,14 @@ class SaleItem extends Model
         return $this->belongsTo(Sale::class);
     }
 
+    /**
+     * withTrashed() so a soft-deleted product still resolves here — old
+     * invoices/reports must keep showing the product's name/details even
+     * after it's been removed from active listings.
+     */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function returns(): HasMany

@@ -16,6 +16,7 @@ class ProductController extends Controller
     {
         $products = Product::query()
             ->with('category', 'supplier')
+            ->when($request->filter === 'deleted', fn ($q) => $q->onlyTrashed())
             ->when($request->search, fn ($q) => $q->where('name', 'like', "%{$request->search}%")
                 ->orWhere('sku', 'like', "%{$request->search}%")
                 ->orWhere('item_code', 'like', "%{$request->search}%")
@@ -122,19 +123,24 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('status', 'Product updated.');
     }
 
+    /**
+     * Soft-delete only — the product row (and its image) stays in the
+     * database so past sales still resolve a real product with full
+     * details. It just disappears from normal listings/pickers and shows
+     * up under the "Deleted" filter, where it can be restored.
+     */
     public function destroy(Product $product)
     {
-        if ($product->saleItems()->exists()) {
-            return back()->withErrors(['product' => 'Cannot delete a product that has sale history. Deactivate it instead.']);
-        }
-
-        if ($product->image_path) {
-            Storage::disk('public')->delete($product->image_path);
-        }
-
         $product->delete();
 
-        return redirect()->route('products.index')->with('status', 'Product removed.');
+        return redirect()->route('products.index')->with('status', 'Product deleted. It can be restored from the "Deleted" tab.');
+    }
+
+    public function restore(int $product)
+    {
+        Product::onlyTrashed()->findOrFail($product)->restore();
+
+        return redirect()->route('products.index', ['filter' => 'deleted'])->with('status', 'Product restored.');
     }
 
     /**

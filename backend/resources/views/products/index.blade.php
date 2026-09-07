@@ -36,6 +36,8 @@
                        class="px-3 py-1.5 rounded-md {{ request('filter') === 'low_stock' ? 'bg-critical text-white' : 'bg-critical-soft text-critical hover:bg-critical/20' }}">Low Stock</a>
                     <a href="{{ route('products.index', array_filter(['search' => request('search'), 'filter' => 'expired'])) }}"
                        class="px-3 py-1.5 rounded-md {{ request('filter') === 'expired' ? 'bg-warn text-white' : 'bg-warn-soft text-warn hover:bg-warn/20' }}">Expired</a>
+                    <a href="{{ route('products.index', array_filter(['search' => request('search'), 'filter' => 'deleted'])) }}"
+                       class="px-3 py-1.5 rounded-md {{ request('filter') === 'deleted' ? 'bg-line text-white' : 'bg-line-soft text-ink-soft hover:bg-line' }}">Deleted</a>
                 </div>
             </div>
 
@@ -85,13 +87,20 @@
                                     {{ $product->stock_quantity }} {{ $product->unit }}
                                 </td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                                    <a href="{{ route('stock-adjustments.create', ['product_id' => $product->id]) }}" class="text-accent hover:underline">Adjust Stock</a>
-                                    <a href="{{ route('products.edit', $product) }}" class="text-accent hover:underline ml-3">Edit</a>
-                                    <form method="POST" action="{{ route('products.destroy', $product) }}" class="inline" onsubmit="return confirm('Delete this product? This cannot be undone.')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="text-critical hover:underline ml-3">Delete</button>
-                                    </form>
+                                    @if ($product->trashed())
+                                        <form method="POST" action="{{ route('products.restore', $product->id) }}" class="inline">
+                                            @csrf
+                                            <button class="text-accent hover:underline">Restore</button>
+                                        </form>
+                                    @else
+                                        <a href="{{ route('stock-adjustments.create', ['product_id' => $product->id]) }}" class="text-accent hover:underline">Adjust Stock</a>
+                                        <a href="{{ route('products.edit', $product) }}" class="text-accent hover:underline ml-3">Edit</a>
+                                        <form method="POST" action="{{ route('products.destroy', $product) }}" class="inline" onsubmit="return confirm('Delete this product? It will be hidden from listings but can be restored from the Deleted tab.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="text-critical hover:underline ml-3">Delete</button>
+                                        </form>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

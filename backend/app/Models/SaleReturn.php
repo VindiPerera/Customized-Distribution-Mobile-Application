@@ -34,8 +34,12 @@ class SaleReturn extends Model
         return $this->belongsTo(SaleItem::class, 'original_sale_item_id');
     }
 
+    /**
+     * withTrashed() so a returned product's record keeps resolving even
+     * after it's been soft-deleted from active listings.
+     */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 }

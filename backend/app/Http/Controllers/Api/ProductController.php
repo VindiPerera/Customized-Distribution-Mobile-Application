@@ -92,11 +92,14 @@ class ProductController extends Controller
         return $product;
     }
 
+    /**
+     * Soft-delete only — the row (and its image) stays in the database so
+     * past sales still resolve a real product with full details. It just
+     * disappears from normal listings/pickers (the default query excludes
+     * trashed products automatically).
+     */
     public function destroy(Product $product)
     {
-        if ($product->image_path) {
-            Storage::disk('public')->delete($product->image_path);
-        }
         $product->delete();
 
         return response()->noContent();
